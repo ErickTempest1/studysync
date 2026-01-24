@@ -1,3 +1,43 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* Animação de "Flutuar/Respirar" para o BMO ocioso */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Animação de Nuvens passando */
+@keyframes drift {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100vw); }
+}
+.animate-drift-slow {
+  animation: drift 60s linear infinite;
+}
+.animate-drift-medium {
+  animation: drift 40s linear infinite;
+}
+
+/* Animação de Estrelas piscando */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite alternate;
+}
+
+/* Sol girando devagar */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
