@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import bmoImg from './assets/bmo.png' // <-- Importando o BMO!
+import bmoImg from './assets/bmo.png'
 
 function App() {
   const [course, setCourse] = useState(null)
@@ -10,21 +10,20 @@ function App() {
   const [selectedOption, setSelectedOption] = useState(null)
   const [status, setStatus] = useState('none')
 
-  // Estado do Tempo (Dia, Tarde, Noite)
+  // Estado do Tempo e Mascote
   const [timeTheme, setTimeTheme] = useState('day')
+  const [bmoMessage, setBmoMessage] = useState("Vamos codar!")
+  const [isBmoHappy, setIsBmoHappy] = useState(false)
 
-  // 1. Detectar Hora do Dia Automaticamente
+  // 1. Detectar Hora
   useEffect(() => {
     const updateTime = () => {
       const hour = new Date().getHours()
-      // Teste: Mude o número abaixo para testar (ex: hour >= 18 para ver o pôr do sol agora)
-      if (hour >= 6 && hour < 17) setTimeTheme('day')        // 06:00 as 17:00 (Dia)
-      else if (hour >= 17 && hour < 19) setTimeTheme('sunset') // 17:00 as 19:00 (Tarde)
-      else setTimeTheme('night')                               // 19:00 as 06:00 (Noite)
+      if (hour >= 6 && hour < 17) setTimeTheme('day')
+      else if (hour >= 17 && hour < 19) setTimeTheme('sunset')
+      else setTimeTheme('night')
     }
     updateTime()
-    const interval = setInterval(updateTime, 60000) // Checa a cada minuto
-    return () => clearInterval(interval)
   }, [])
 
   // 2. Busca dados do Java
@@ -34,92 +33,106 @@ function App() {
       .then(data => { if (data.length > 0) setCourse(data[0]) })
   }, [])
 
+  // Interação com o BMO
+  const pokeBmo = () => {
+    setIsBmoHappy(true)
+    const falas = ["Bip Bop!", "Isso é JavaScript!", "Você é incrível!", "Não esqueça o ponto e vírgula!", "🐧💻"]
+    setBmoMessage(falas[Math.floor(Math.random() * falas.length)])
+    setTimeout(() => setIsBmoHappy(false), 1000)
+  }
+
   // Funções do Jogo
   const startLesson = (lesson) => {
     setActiveLesson(lesson); setCurrentExerciseIndex(0); setStatus('none'); setSelectedOption(null)
+    setBmoMessage("Hora do show!")
   }
+
   const checkAnswer = () => {
     const isCorrect = selectedOption.isCorrect
     setStatus(isCorrect ? 'correct' : 'wrong')
-  }
-
-  // CONFIGURAÇÃO DOS TEMAS VISUAIS
-  const themes = {
-    day: {
-      sky: 'from-sky-400 to-blue-300',
-      sea: 'bg-blue-500',
-      hill: 'bg-tech-green',
-      orb: 'bg-yellow-300 shadow-[0_0_80px_orange]' // Sol
-    },
-    sunset: {
-      sky: 'from-orange-400 via-red-400 to-purple-600',
-      sea: 'bg-indigo-600',
-      hill: 'bg-emerald-700',
-      orb: 'bg-orange-300 shadow-[0_0_80px_red]' // Sol poente
-    },
-    night: {
-      sky: 'from-slate-900 via-purple-900 to-slate-900',
-      sea: 'bg-blue-900',
-      hill: 'bg-emerald-900',
-      orb: 'bg-gray-100 shadow-[0_0_50px_white]' // Lua
+    if(isCorrect) {
+      setBmoMessage("Compilado com sucesso! 🚀")
+      setIsBmoHappy(true)
+      setTimeout(() => setIsBmoHappy(false), 1500)
+    } else {
+      setBmoMessage("Erro de sintaxe... Tente de novo! 🐛")
     }
   }
 
+  // TEMAS VISUAIS (Cores dos gradientes)
+  const themes = {
+    day: { bg: 'bg-gradient-to-b from-sky-300 via-sky-100 to-white', text: 'text-tech-black' },
+    sunset: { bg: 'bg-gradient-to-b from-orange-400 via-rose-300 to-indigo-100', text: 'text-tech-black' },
+    night: { bg: 'bg-gradient-to-b from-slate-900 via-indigo-900 to-slate-800', text: 'text-white' }
+  }
   const currentTheme = themes[timeTheme]
 
-  // TELA DE CARREGAMENTO (Com o BMO Oficial)
-  if (!course) return (
-    <div className={`min-h-screen flex items-center justify-center font-mono text-white bg-gradient-to-b ${currentTheme.sky}`}>
-      <div className="text-center">
-        <img src={bmoImg} alt="BMO" className="w-32 h-32 animate-bounce mb-4 mx-auto" />
-        <p className="text-xl font-bold">BMO está compilando o mundo...</p>
-      </div>
+  // COMPONENTE: O Horizonte (SVG Ondulado)
+  const HorizonBackground = () => (
+    <div className="absolute bottom-0 left-0 right-0 pointer-events-none z-0">
+      {/* Camada do Mar (Fundo) */}
+      <svg className="absolute bottom-0 w-full h-64 opacity-80" viewBox="0 0 1440 320" preserveAspectRatio="none">
+        <path fill={timeTheme === 'night' ? '#1e3a8a' : '#3b82f6'} fillOpacity="0.6" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+      </svg>
+      {/* Camada das Colinas (Frente) */}
+      <svg className="absolute bottom-0 w-full h-48" viewBox="0 0 1440 320" preserveAspectRatio="none">
+         <path fill={timeTheme === 'night' ? '#064e3b' : '#10b981'} fillOpacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,261.3C960,256,1056,224,1152,197.3C1248,171,1344,149,1392,138.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+      </svg>
     </div>
   )
 
-  // === MODO JOGO (Lição com MATRIX) ===
+  // COMPONENTE: O BMO Interativo
+  const BmoMascot = () => (
+    <div className="fixed bottom-10 left-10 z-50 group cursor-pointer hidden md:block" onClick={pokeBmo}>
+      {/* Balão de Fala */}
+      <div className="absolute -top-20 left-10 bg-white text-tech-black px-4 py-2 rounded-2xl rounded-bl-none shadow-lg border-2 border-gray-100 transform transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 w-48 text-sm font-bold">
+        {bmoMessage}
+      </div>
+      {/* Imagem do BMO */}
+      <img
+        src={bmoImg}
+        alt="BMO"
+        className={`w-32 h-32 drop-shadow-2xl transition-transform duration-300 hover:scale-110 ${isBmoHappy ? 'animate-bounce' : 'animate-pulse'}`}
+      />
+    </div>
+  )
+
+  if (!course) return <div className="min-h-screen flex items-center justify-center bg-tech-blue text-white font-bold">Carregando o mundo...</div>
+
+  // === MODO JOGO ===
   if (activeLesson) {
     const exercise = activeLesson.exercises[currentExerciseIndex]
-    if (!exercise) return <div>Erro</div>
-
     return (
       <div className="min-h-screen bg-tech-dark flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        {/* Fundo Matrix discreto */}
-        <div className="absolute inset-0 opacity-10 font-mono text-tech-green text-xs p-4 break-words overflow-hidden pointer-events-none select-none">
-          {Array(800).fill(0).map((_, i) => <span key={i} style={{opacity: Math.random()}}>{Math.random() > 0.5 ? '1' : '0'} </span>)}
+        {/* Matrix Rain Fundo */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none font-mono text-green-500 text-xs break-all">
+          {Array(2000).fill(0).map(() => Math.random() > 0.5 ? '1 ' : '0 ')}
         </div>
 
-        <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden min-h-[600px] flex flex-col z-10">
-          {/* Barra Superior */}
+        <BmoMascot /> {/* BMO te acompanha na prova */}
+
+        <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden min-h-[500px] flex flex-col z-10">
           <div className="p-6 border-b border-gray-100 flex items-center gap-6">
-            <button onClick={() => setActiveLesson(null)} className="text-gray-400 hover:text-tech-black font-bold text-2xl">✕</button>
+            <button onClick={() => setActiveLesson(null)} className="text-gray-400 hover:text-red-500 font-bold text-2xl">✕</button>
             <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
               <div className="bg-tech-blue h-full transition-all duration-500" style={{ width: `${((currentExerciseIndex + 1) / activeLesson.exercises.length) * 100}%` }}></div>
             </div>
           </div>
-
-          {/* Pergunta */}
           <div className="flex-1 p-8 flex flex-col items-center justify-center">
-            <h1 className="text-2xl md:text-3xl font-bold text-tech-black mb-10 text-center">{exercise.prompt}</h1>
+            <h1 className="text-3xl font-bold text-tech-black mb-10 text-center">{exercise.prompt}</h1>
             <div className="grid grid-cols-1 gap-4 w-full">
               {exercise.options.map((option) => (
-                <div
-                  key={option.id} onClick={() => status === 'none' && setSelectedOption(option)}
-                  className={`p-5 rounded-xl border-2 cursor-pointer transition flex items-center gap-4 text-lg font-medium shadow-sm hover:shadow-md ${selectedOption?.id === option.id ? 'bg-blue-50 border-tech-blue text-tech-blue' : 'border-gray-200 hover:bg-gray-50'} ${status === 'correct' && option.isCorrect ? '!bg-green-100 !border-tech-green !text-tech-green' : ''} ${status === 'wrong' && selectedOption?.id === option.id ? '!bg-red-100 !border-red-500 !text-red-500' : ''}`}
-                >
-                  <div className={`w-8 h-8 rounded border flex items-center justify-center text-sm font-bold ${selectedOption?.id === option.id ? 'bg-tech-blue text-white border-tech-blue' : 'border-gray-300 text-gray-400'}`}>
-                    {String.fromCharCode(64 + option.id)}
-                  </div>
+                <div key={option.id} onClick={() => status === 'none' && setSelectedOption(option)}
+                  className={`p-5 rounded-xl border-2 cursor-pointer transition flex items-center gap-4 text-lg font-medium ${selectedOption?.id === option.id ? 'bg-blue-50 border-tech-blue text-tech-blue' : 'border-gray-200 hover:bg-gray-50'} ${status === 'correct' && option.isCorrect ? '!bg-green-100 !border-tech-green !text-tech-green' : ''} ${status === 'wrong' && selectedOption?.id === option.id ? '!bg-red-100 !border-red-500 !text-red-500' : ''}`}>
+                  <div className={`w-8 h-8 rounded border flex items-center justify-center text-sm font-bold ${selectedOption?.id === option.id ? 'bg-tech-blue text-white' : 'border-gray-300 text-gray-400'}`}>{String.fromCharCode(64 + option.id)}</div>
                   {option.text}
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Botão Verificar */}
-          <div className={`p-6 border-t border-gray-100 ${status === 'correct' ? 'bg-green-50' : ''} ${status === 'wrong' ? 'bg-red-50' : ''}`}>
-             <button onClick={checkAnswer} disabled={!selectedOption} className={`w-full py-4 rounded-xl font-bold text-white uppercase tracking-widest shadow-lg transition ${status === 'none' ? 'bg-tech-blue hover:bg-blue-600' : status === 'correct' ? 'bg-tech-green' : 'bg-red-500'} ${!selectedOption ? '!bg-gray-300 !shadow-none' : ''}`}>
-                {status === 'none' ? 'Verificar Código' : 'Próximo'}
+          <div className={`p-6 border-t border-gray-100 ${status === 'correct' ? 'bg-green-50' : status === 'wrong' ? 'bg-red-50' : ''}`}>
+             <button onClick={checkAnswer} disabled={!selectedOption} className={`w-full py-4 rounded-xl font-bold text-white uppercase tracking-widest shadow-lg ${status === 'none' ? 'bg-tech-blue hover:bg-blue-600' : status === 'correct' ? 'bg-tech-green' : 'bg-red-500'}`}>
+                {status === 'none' ? 'VERIFICAR' : 'PRÓXIMO'}
              </button>
           </div>
         </div>
@@ -127,65 +140,46 @@ function App() {
     )
   }
 
-  // === MODO MAPA (Horizonte Dinâmico) ===
+  // === MODO MAPA ===
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${currentTheme.sky} font-sans relative overflow-hidden transition-colors duration-1000`}>
+    <div className={`min-h-screen ${currentTheme.bg} font-sans relative overflow-x-hidden transition-colors duration-1000`}>
+      <HorizonBackground /> {/* O Novo Fundo SVG */}
+      <BmoMascot /> {/* O Novo Mascote Flutuante */}
 
-      {/* --- CENÁRIO DE FUNDO (CSS PURO) --- */}
-
-      {/* Sol / Lua (Orbe) */}
-      <div className={`absolute top-10 right-20 w-32 h-32 rounded-full blur-xl opacity-90 transition-all duration-1000 ${currentTheme.orb}`}></div>
-
-      {/* Mar (Fundo) */}
-      <div className={`absolute bottom-0 left-0 right-0 h-64 ${currentTheme.sea} opacity-90 z-0`}></div>
-
-      {/* Colina Esquerda */}
-      <div className={`absolute -bottom-20 -left-40 w-[70%] h-96 rounded-[100%] ${currentTheme.hill} z-0 opacity-90 transform rotate-12`}></div>
-
-      {/* Colina Direita */}
-      <div className={`absolute -bottom-30 -right-40 w-[80%] h-96 rounded-[100%] ${currentTheme.hill} z-0 transform -rotate-12`}></div>
-
-      {/* --- CONTEÚDO PRINCIPAL --- */}
-      <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-xl min-h-screen shadow-2xl border-x border-white/20 relative z-10 flex flex-col">
-
-        {/* Cabeçalho com BMO */}
-        <header className="sticky top-0 bg-white/80 backdrop-blur border-b border-gray-200 p-6 z-20 flex justify-between items-center shadow-sm">
-          <div className="flex items-center gap-3">
-             <img src={bmoImg} alt="BMO" className="w-14 h-14 animate-bounce drop-shadow-lg" />
-             <span className="font-bold text-gray-500 uppercase tracking-widest text-sm font-mono">{course.title}</span>
-          </div>
-          <div className="flex gap-6 text-lg">
-             <span className="text-tech-blue font-bold flex gap-2">💎 500</span>
-             <span className="text-tech-orange font-bold flex gap-2">🔥 12</span>
-          </div>
+      <div className="max-w-4xl mx-auto min-h-screen relative z-10 flex flex-col">
+        {/* Cabeçalho Limpo */}
+        <header className="sticky top-0 bg-white/60 backdrop-blur-md p-4 mx-4 mt-4 rounded-2xl flex justify-between items-center shadow-sm border border-white/40">
+           <div className="flex items-center gap-3">
+             <span className="font-bold text-gray-600 uppercase tracking-widest text-sm font-mono flex items-center gap-2">
+               <span className="text-xl">🐧</span> {course.title}
+             </span>
+           </div>
+           <div className="flex gap-4 font-bold text-lg">
+             <span className="text-tech-blue">💎 500</span>
+             <span className="text-tech-orange">🔥 12</span>
+           </div>
         </header>
 
-        {/* Lista de Unidades */}
-        <div className="p-8 pb-32 flex-1">
+        <div className="p-8 pb-32 flex-1 flex flex-col items-center">
           {course.units.map((unit) => (
-            <div key={unit.id} className="mb-16">
-              <div className="p-6 text-white flex justify-between items-center rounded-2xl mb-10 shadow-lg transform hover:-translate-y-1 transition duration-300" style={{ backgroundColor: unit.color || '#3B82F6' }}>
-                <div>
-                  <h2 className="font-bold text-2xl mb-1">{unit.title}</h2>
+            <div key={unit.id} className="w-full mb-12">
+              <div className="p-6 text-white flex justify-between items-center rounded-2xl mb-8 shadow-lg transform hover:scale-[1.01] transition duration-300 relative overflow-hidden" style={{ backgroundColor: unit.color || '#3B82F6' }}>
+                <div className="relative z-10">
+                  <h2 className="font-bold text-2xl">{unit.title}</h2>
                   <p className="opacity-90 font-mono text-sm">Unidade {unit.orderIndex}</p>
                 </div>
-                <button className="bg-white/20 px-6 py-3 rounded-xl font-bold border-2 border-transparent hover:bg-white/30 transition backdrop-blur-sm flex items-center gap-2">
-                  <span>📜</span> GUIA
-                </button>
+                <button className="relative z-10 bg-black/20 px-4 py-2 rounded-lg font-bold hover:bg-black/30 transition text-sm">GUIA</button>
               </div>
 
-              <div className="flex flex-col items-center gap-6 relative">
-                 <div className="absolute top-0 bottom-0 w-2 bg-gray-100 rounded-full -z-10"></div>
+              <div className="flex flex-col items-center gap-4">
                  {unit.lessons.map((lesson, index) => (
-                    <div
-                      key={lesson.id} onClick={() => startLesson(lesson)}
-                      className={`
-                        w-24 h-24 rounded-full border-4 border-white shadow-xl flex items-center justify-center cursor-pointer
-                        hover:scale-110 hover:rotate-3 transition-all duration-300 z-10 group relative
-                        ${index % 2 === 0 ? '-ml-16' : 'ml-16'} bg-tech-green
-                      `}
-                    >
-                      <span className="text-4xl filter drop-shadow-md">🚀</span>
+                    <div key={lesson.id} onClick={() => startLesson(lesson)}
+                      className={`w-20 h-20 rounded-full border-[6px] border-white shadow-xl flex items-center justify-center cursor-pointer hover:scale-110 transition-all z-10 relative bg-tech-green ${index % 2 !== 0 ? 'ml-20' : '-ml-20'}`}>
+                      <span className="text-3xl drop-shadow-md">🚀</span>
+                      {/* Tooltip da lição */}
+                      <div className="absolute top-20 bg-white text-tech-black text-xs font-bold py-1 px-2 rounded shadow opacity-0 hover:opacity-100 transition whitespace-nowrap z-20 pointer-events-none">
+                        {lesson.title}
+                      </div>
                     </div>
                  ))}
               </div>
