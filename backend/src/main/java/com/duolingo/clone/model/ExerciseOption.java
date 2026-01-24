@@ -3,21 +3,28 @@ package com.duolingo.clone.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Data
 @Entity
-@Table(name = "exercise_options")
+@Data
+@NoArgsConstructor
 public class ExerciseOption {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String text;        // Texto da opção
-    private Boolean isCorrect;  // É a correta?
+    private String text;
+    private Boolean isCorrect;
 
     @ManyToOne
     @JoinColumn(name = "exercise_id")
-    @JsonIgnore // <--- Adicione esta linha
+    @JsonIgnore // Evita loop infinito no JSON
     private Exercise exercise;
+
+    // --- O CONSTRUTOR QUE FALTAVA ---
+    public ExerciseOption(String text, Boolean isCorrect, Exercise exercise) {
+        this.text = text;
+        this.isCorrect = isCorrect;
+        this.exercise = exercise;
+    }
 }
