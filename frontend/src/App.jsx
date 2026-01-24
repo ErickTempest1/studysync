@@ -144,19 +144,27 @@ function App() {
   )
 
   // MASCOTE BMO VIVO
-  const AliveBmo = () => (
-    <div className="fixed bottom-10 left-10 z-50 group cursor-pointer hidden md:block" onClick={pokeBmo}>
-      <div className={`absolute -top-24 left-10 bg-white text-tech-black px-6 py-3 rounded-2xl rounded-bl-none shadow-xl border-2 border-gray-100 transform transition-all duration-300 origin-bottom-left scale-0 group-hover:scale-100 w-56 text-sm font-bold ${status === 'correct' ? 'bg-green-100 border-green-200 text-green-700 scale-100' : ''} ${status === 'wrong' ? 'bg-red-100 border-red-200 text-red-600 scale-100' : ''}`}>
-        {bmoMessage}
-      </div>
-      <img
-        id="bmo-mascot"
-        src={bmoImg}
-        alt="BMO"
-        className={`w-40 h-40 drop-shadow-2xl transition-all duration-300 hover:scale-105 ${status === 'correct' ? 'animate-bounce' : status === 'wrong' ? 'animate-shake' : 'animate-float'}`}
-      />
-    </div>
-  )
+ // MASCOTE BMO VIVO (Versão Corrigida para a sua Imagem)
+   const AliveBmo = () => (
+     <div className="fixed bottom-4 left-4 md:bottom-8 md:left-8 z-50 group cursor-pointer" onClick={pokeBmo}>
+
+       {/* Balão de fala */}
+       <div className={`absolute bottom-full mb-4 left-0 bg-white text-tech-black px-6 py-4 rounded-2xl rounded-bl-none shadow-xl border-2 border-gray-100 transform transition-all duration-300 origin-bottom-left scale-0 group-hover:scale-100 w-64 text-sm font-bold z-20 ${status === 'correct' ? 'bg-green-100 border-green-200 text-green-700 scale-100' : ''} ${status === 'wrong' ? 'bg-red-100 border-red-200 text-red-600 scale-100' : ''}`}>
+         {bmoMessage}
+       </div>
+
+       {/* Imagem do BMO */}
+       <img
+         id="bmo-mascot"
+         src={bmoImg}
+         alt="BMO"
+         // AQUI ESTÁ A CORREÇÃO:
+         // 'w-32 md:w-40' -> Define a largura fixa
+         // 'h-auto' -> A altura se ajusta sozinha (sem achatar!)
+         className={`w-32 md:w-40 h-auto drop-shadow-2xl transition-all duration-300 hover:scale-105 ${status === 'correct' ? 'animate-bounce' : status === 'wrong' ? 'animate-shake' : 'animate-float'}`}
+       />
+     </div>
+   )
 
   if (!course) return <div className={`min-h-screen flex items-center justify-center ${currentTheme.bg} text-white font-bold`}>Carregando o mundo...</div>
 
