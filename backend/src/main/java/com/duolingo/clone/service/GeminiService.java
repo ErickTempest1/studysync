@@ -5,12 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.*;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 @Service
 public class GeminiService {
@@ -21,57 +18,43 @@ public class GeminiService {
     @Value("${gemini.url}")
     private String apiUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     public String gerarExercicio(String tema) {
         try {
-            // 1. O Prompt para o BMO (Instrução para a IA)
-            String prompt = """
-                Você é um professor de programação experiente.
-                Gere um JSON com 1 exercício de múltipla escolha sobre o tema: %s.
-                Use estritamente este formato JSON, sem Markdown (nada de ```json):
-                {
-                    "prompt": "A pergunta técnica aqui",
-                    "options": [
-                        {"text": "Opção A", "isCorrect": false},
-                        {"text": "Opção B (a correta)", "isCorrect": true},
-                        {"text": "Opção C", "isCorrect": false}
-                    ]
-                }
-                """.formatted(tema);
+            RestTemplate restTemplate = new RestTemplate();
+            ObjectMapper objectMapper = new ObjectMapper();
 
-            // 2. Montar o Corpo da Requisição (Payload)
-            Map<String, Object> content = new HashMap<>();
-            content.put("parts", Collections.singletonList(Map.of("text", prompt)));
+            // 1. Monta a URL garantindo que a chave está lá
+            String finalUrl = apiUrl + "?key=" + apiKey;
 
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("contents", Collections.singletonList(content));
+            // Log para debug (sem mostrar a chave inteira)
+            System.out.println("🐧 BMO: Chamando IA em: " + apiUrl);
 
-            // 3. Configurar Cabeçalhos
+            // 2. Cria o corpo da requisição (JSON)
+            String prompt = "Crie um exercício de programação sobre " + tema + " no formato JSON com: 'prompt' (pergunta), 'correctAnswer' (resposta certa) e 'options' (lista de opções).";
+
+            String requestBody = "{ \"contents\": [{ \"parts\": [{ \"text\": \"" + prompt + "\" }] }] }";
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-            // 4. Enviar para o Google! 🚀
-            String finalUrl = apiUrl + "?key=" + apiKey;
-            ResponseEntity<String> response = restTemplate.postForEntity(finalUrl, entity, String.class);
+            // 3. Faz a chamada
+            String response = restTemplate.postForObject(finalUrl, entity, String.class);
 
-            // 5. Ler a resposta
-            if (response.getStatusCode() == HttpStatus.OK) {
-                JsonNode root = objectMapper.readTree(response.getBody());
-                // O Gemini retorna um JSON complexo, precisamos pegar só o texto da resposta
-                String textoResposta = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
+            // 4. Limpa a resposta para pegar só o texto
+            JsonNode root = objectMapper.readTree(response);
+            String textoGerado = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
 
-                // Limpeza extra caso a IA mande markdown
-                return textoResposta.replace("```json", "").replace("```", "").trim();
-            }
+            // Remove crases de formatação markdown se houver (```json ... ```)
+            textoGerado = textoGerado.replace("```json", "").replace("```", "").trim();
+
+            System.out.println("🐧 RESPOSTA DA IA (JSON): " + textoGerado);
+            return textoGerado;
 
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Erro ao chamar o BMO: " + e.getMessage());
+            System.err.println("Erro ao chamar o BMO: " + e.getMessage());
+            return null;
         }
-        return null;
     }
 }
