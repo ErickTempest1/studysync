@@ -84,7 +84,7 @@ function App() {
 
   // 2. Busca dados do Java
   useEffect(() => {
-    fetch('http://localhost:8081/courses')
+    fetch('http://localhost:8080/courses')
       .then(res => res.json())
       .then(data => { if (data.length > 0) setCourse(data[0]) })
   }, [])
