@@ -7,60 +7,121 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class GeminiService {
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    @Value("${gemini.url}")
+    @Value("${quizapi.url}")
     private String apiUrl;
+
+    @Value("${quizapi.key}")
+    private String apiKey;
 
     public String gerarExercicio(String tema) {
         try {
-            System.out.println("🐧 BMO: Tentando conectar com a IA...");
+            System.out.println("🐧 BMO: Consultando a QuizAPI...");
 
-            // 1. Prepara a chamada
-            String finalUrl = apiUrl + "?key=" + apiKey;
-            String prompt = "Crie um exercício de programação sobre " + tema + " no formato JSON estrito com: 'prompt' (pergunta), 'correctAnswer' (resposta certa) e 'options' (lista de opções com 'text' e 'correct' boolean).";
-            String requestBody = "{ \"contents\": [{ \"parts\": [{ \"text\": \"" + prompt + "\" }] }] }";
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-
-            // 2. Tenta chamar o Google
             RestTemplate restTemplate = new RestTemplate();
-            String response = restTemplate.postForObject(finalUrl, entity, String.class);
 
-            // 3. Processa a resposta
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode root = objectMapper.readTree(response);
-            String textoGerado = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
+            // 1. Configura o Header com a sua chave (Segurança)
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Api-Key", apiKey);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            // Limpa formatação Markdown
-            textoGerado = textoGerado.replace("```json", "").replace("```", "").trim();
+            // 2. Chama a API pedindo 1 questão de código (JavaScript, Linux, etc)
+            // Limit=1 garante que vem só uma pergunta
+            String finalUrl = apiUrl + "?limit=1";
 
-            System.out.println("🐧 IA Respondeu: " + textoGerado);
-            return textoGerado;
+            ResponseEntity<String> response = restTemplate.exchange(finalUrl, HttpMethod.GET, entity, String.class);
+
+            // 3. Lê a resposta
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(response.getBody());
+
+            // A QuizAPI devolve uma lista [ {} ], pegamos o primeiro item
+            if (root.isArray() && !root.isEmpty()) {
+                JsonNode questaoOriginal = root.get(0);
+                return converterParaNossoFormato(questaoOriginal);
+            }
+
+            return fallback("Não encontrei perguntas novas...");
 
         } catch (Exception e) {
-            // --- O PULO DO GATO: FALLBACK (PLANO B) ---
-            System.err.println("⚠️ Erro na IA (Google 404/Erro): " + e.getMessage());
-            System.out.println("🐧 BMO: Ativando modo de emergência (Questão Local)!");
-
-            // Retorna um JSON fixo para o site não travar
-            return "{\n" +
-                    "  \"prompt\": \"(Modo Offline) Qual método imprime texto no console em Java?\",\n" +
-                    "  \"correctAnswer\": \"System.out.println(...)\",\n" +
-                    "  \"options\": [\n" +
-                    "    {\"text\": \"System.out.printLine(...)\", \"correct\": false},\n" +
-                    "    {\"text\": \"Console.log(...)\", \"correct\": false},\n" +
-                    "    {\"text\": \"System.out.println(...)\", \"correct\": true}\n" +
-                    "  ]\n" +
-                    "}";
+            System.err.println("⚠️ Erro na QuizAPI: " + e.getMessage());
+            return fallback("O BMO perdeu a conexão. (Modo Offline)");
         }
+    }
+
+    // --- MÁGICA: Tradutor de QuizAPI -> Duolingo Clone ---
+    private String converterParaNossoFormato(JsonNode q) {
+        try {
+            String pergunta = q.get("question").asText();
+
+            // Descobre qual letra é a correta (answer_a_correct: "true")
+            JsonNode correctAnswers = q.get("correct_answers");
+            String letraCorreta = null;
+
+            if ("true".equals(correctAnswers.get("answer_a_correct").asText())) letraCorreta = "answer_a";
+            else if ("true".equals(correctAnswers.get("answer_b_correct").asText())) letraCorreta = "answer_b";
+            else if ("true".equals(correctAnswers.get("answer_c_correct").asText())) letraCorreta = "answer_c";
+            else if ("true".equals(correctAnswers.get("answer_d_correct").asText())) letraCorreta = "answer_d";
+
+            // Pega o texto da resposta certa
+            JsonNode answers = q.get("answers");
+            String textoRespostaCorreta = answers.get(letraCorreta).asText();
+
+            // Monta o JSON manualmente para não precisar de classes extras
+            StringBuilder json = new StringBuilder();
+            json.append("{");
+            json.append("\"prompt\": \"").append(limparTexto(pergunta)).append("\",");
+            json.append("\"correctAnswer\": \"").append(limparTexto(textoRespostaCorreta)).append("\",");
+            json.append("\"options\": [");
+
+            // Adiciona as opções válidas (remove as nulas)
+            List<String> optionsJson = new ArrayList<>();
+            addOptionIfValid(optionsJson, answers, "answer_a", letraCorreta);
+            addOptionIfValid(optionsJson, answers, "answer_b", letraCorreta);
+            addOptionIfValid(optionsJson, answers, "answer_c", letraCorreta);
+            addOptionIfValid(optionsJson, answers, "answer_d", letraCorreta);
+
+            json.append(String.join(",", optionsJson));
+            json.append("]}");
+
+            return json.toString();
+
+        } catch (Exception e) {
+            return fallback("Erro ao traduzir questão.");
+        }
+    }
+
+    private void addOptionIfValid(List<String> list, JsonNode answers, String key, String correctKey) {
+        if (answers.has(key) && !answers.get(key).isNull()) {
+            String text = limparTexto(answers.get(key).asText());
+            boolean isCorrect = key.equals(correctKey);
+            list.add(String.format("{\"text\": \"%s\", \"correct\": %b}", text, isCorrect));
+        }
+    }
+
+    private String limparTexto(String text) {
+        if (text == null) return "";
+        return text.replace("\"", "'").replace("\n", " ").trim();
+    }
+
+    private String fallback(String msg) {
+        return "{\n" +
+                "  \"prompt\": \"" + msg + " Qual a saída de: console.log('Oi')?\",\n" +
+                "  \"correctAnswer\": \"Oi\",\n" +
+                "  \"options\": [\n" +
+                "    {\"text\": \"Erro\", \"correct\": false},\n" +
+                "    {\"text\": \"Oi\", \"correct\": true},\n" +
+                "    {\"text\": \"Undefined\", \"correct\": false}\n" +
+                "  ]\n" +
+                "}";
     }
 }
