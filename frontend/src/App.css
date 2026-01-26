@@ -3,104 +3,87 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
 
 /* Layout Geral */
-.app-container {
-  width: 100vw;
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-  transition: background 1s ease;
-}
-
-/* TEMAS (Cores do Céu) */
+.app-container { width: 100vw; min-height: 100vh; position: relative; overflow: hidden; transition: background 1s ease; }
 .app-container.day { background: linear-gradient(to bottom, #00C6FF, #0072FF); }
 .app-container.sunset { background: linear-gradient(to bottom, #FF512F, #F09819, #FF512F); }
 .app-container.night { background: linear-gradient(to bottom, #141E30, #243B55); color: white; }
 
-/* --- BACKGROUND ANIMADO --- */
+/* --- BACKGROUND --- */
 .background-layer { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-
 .celestial-body { position: absolute; top: 40px; right: 80px; width: 100px; height: 100px; }
 .day-sun { animation: spin 20s linear infinite; }
 .sunset-sun { animation: pulse 3s infinite; }
 .moon { filter: drop-shadow(0 0 20px rgba(255,255,255,0.5)); animation: float 6s infinite; }
-
 .clouds-container { opacity: 0.8; }
 .cloud { position: absolute; width: 150px; fill: white; opacity: 0.7; }
 .cloud-1 { top: 80px; left: 10%; animation: drift 60s linear infinite; }
 .cloud-2 { top: 150px; left: -20%; animation: drift 80s linear infinite; }
-
 .stars-container { position: absolute; inset: 0; }
 .star { position: absolute; background: white; border-radius: 50%; animation: twinkle 3s infinite; }
-
-/* ONDAS */
 .waves { position: absolute; bottom: 0; width: 100%; height: 300px; }
 .wave-back { position: absolute; bottom: 0; width: 100%; height: 200px; opacity: 0.6; fill: #005bea; transition: fill 1s; }
 .wave-front { position: absolute; bottom: 0; width: 100%; height: 150px; fill: #00b09b; transition: fill 1s; }
-
-/* Ajuste de cores das ondas por tema */
 .sunset .wave-back { fill: #9333EA; } .sunset .wave-front { fill: #166534; }
 .night .wave-back { fill: #1e3a8a; } .night .wave-front { fill: #064e3b; }
 
-/* --- BMO MASCOTE --- */
-.alive-bmo { position: fixed; bottom: 20px; left: 20px; z-index: 50; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+/* --- BMO --- */
+.alive-bmo { position: fixed; bottom: 20px; left: 20px; z-index: 50; display: flex; flex-direction: column; align-items: center; }
 .bmo-img { width: 140px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3)); transition: transform 0.2s; animation: float 4s ease-in-out infinite; }
-.alive-bmo:hover .bmo-img { transform: scale(1.1); }
-
-.bmo-speech {
-    background: white; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px;
-    font-weight: 800; color: #333; font-size: 14px; position: relative;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
+.bmo-speech { background: white; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; font-weight: 800; color: #333; font-size: 14px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .bmo-speech::after { content: ''; position: absolute; bottom: -8px; left: 50%; border-width: 8px 8px 0; border-style: solid; border-color: white transparent transparent transparent; transform: translateX(-50%); }
 .bmo-speech.correct { background: #d7ffb8; color: #58a700; }
 .bmo-speech.wrong { background: #ffdfe0; color: #ea2b2b; }
 
-/* --- LAYOUT DO CONTEÚDO --- */
+/* --- MAPA E CAMINHO --- */
 .content-wrapper { position: relative; z-index: 10; max-width: 600px; margin: 0 auto; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
-
-/* MAPA */
 .map-header { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px; }
 .course-title { font-weight: 800; color: #555; text-transform: uppercase; }
 .stats { font-weight: bold; color: #555; }
-
 .unit-section { width: 100%; margin-bottom: 40px; }
-.unit-banner { background: #58cc02; color: white; padding: 20px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 6px 0 rgba(0,0,0,0.2); margin-bottom: 20px; }
+.unit-banner { background: #58cc02; color: white; padding: 20px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 6px 0 rgba(0,0,0,0.2); margin-bottom: 40px; }
 .unit-banner h3 { font-size: 20px; margin: 0; }
 
-.lessons-path { display: flex; flex-direction: column; align-items: center; gap: 15px; }
-.lesson-node { position: relative; }
-.lesson-node.left { transform: translateX(-30px); }
-.lesson-node.right { transform: translateX(30px); }
+.lessons-path { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.lesson-path-item { position: relative; width: 100%; display: flex; justify-content: center; }
+.lesson-path-item.left { transform: translateX(-40px); }
+.lesson-path-item.right { transform: translateX(40px); }
 
-.lesson-btn { width: 70px; height: 70px; border-radius: 50%; border: 4px solid white; color: white; font-size: 24px; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.2); transition: transform 0.1s; display: flex; align-items: center; justify-content: center; }
-.lesson-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+/* --- BOLINHAS (NODES) --- */
+.lesson-circle { width: 75px; height: 75px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.2); transition: transform 0.1s, background-color 0.3s; position: relative; z-index: 2; border: 4px solid white; }
+.lesson-circle:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+.lesson-circle.locked { cursor: not-allowed; opacity: 0.8; }
 
-.ai-node { margin-bottom: 20px; }
-.ai-btn { background: #58cc02; color: white; border: 4px solid white; padding: 15px 30px; border-radius: 30px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.2); font-size: 16px; }
-.ai-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+/* Animação do item atual */
+.current-pulse { animation: pulse-ring 2s infinite; }
+@keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(255, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.start-label {
+    position: absolute; top: -35px; background: white; color: #58cc02; padding: 5px 10px; border-radius: 8px; font-weight: 800; font-size: 12px; box-shadow: 0 4px 0 rgba(0,0,0,0.1); animation: float 2s infinite; pointer-events: none; white-space: nowrap; z-index: 10;
+}
+.start-label::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-width: 6px 6px 0; border-style: solid; border-color: white transparent transparent transparent; }
 
 /* --- JOGO --- */
 .game-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); min-height: 500px; display: flex; flex-direction: column; }
 .game-header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
 .progress-bar { flex: 1; height: 16px; background: #e5e5e5; border-radius: 8px; overflow: hidden; }
 .fill { height: 100%; background: #58cc02; transition: width 0.3s; }
-
 .game-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .game-body h2 { text-align: center; margin-bottom: 30px; color: #333; }
-
 .options-list { width: 100%; display: grid; gap: 10px; }
 .option-item { border: 2px solid #e5e5e5; padding: 15px; border-radius: 12px; font-weight: bold; color: #555; cursor: pointer; text-align: center; transition: all 0.2s; }
 .option-item:hover { background: #f7f7f7; }
 .option-item.selected { border-color: #84d8ff; background: #ddf4ff; color: #1cb0f6; }
 .option-item.correct { border-color: #58cc02; background: #d7ffb8; color: #58a700; }
 .option-item.wrong { border-color: #ff4b4b; background: #ffdfe0; color: #ea2b2b; }
-
 .game-footer { margin-top: 20px; }
 .action-btn { width: 100%; padding: 15px; border-radius: 12px; font-weight: 800; color: white; border: none; background: #58cc02; box-shadow: 0 4px 0 #46a302; cursor: pointer; }
 .action-btn:disabled { background: #e5e5e5; color: #afafaf; box-shadow: none; cursor: not-allowed; }
 
-/* ANIMAÇÕES */
+/* ANIMAÇÕES GERAIS */
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
