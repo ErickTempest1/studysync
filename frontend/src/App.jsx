@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import { Book, Star, Trophy, Zap, Shield, Flame, MoreHorizontal } from 'lucide-react'
 
-// Componente Sidebar
+// --- Componentes Auxiliares ---
 const Sidebar = () => (
   <div className="sidebar">
     <div className="logo-container">
@@ -17,7 +17,6 @@ const Sidebar = () => (
   </div>
 );
 
-// Componente Header
 const Header = () => (
   <div className="header">
     <div className="flag-icon">🇧🇷</div>
@@ -29,19 +28,19 @@ const Header = () => (
   </div>
 );
 
-// Componente Botão da Lição
-const LessonButton = ({ icon, active, onClick, color }) => (
+const LessonButton = ({ active, onClick, color, index }) => (
   <div className="lesson-path-item">
-    <div 
-      className={`lesson-circle ${active ? 'active' : ''}`} 
+    <div
+      className={`lesson-circle ${active ? 'active' : ''}`}
       style={{ backgroundColor: active ? color : '#e5e7eb' }}
       onClick={onClick}
     >
-      {active ? <Star fill="white" size={32} color="white" /> : <Star size={32} color="#afafaf" />}
+      <Star fill={active ? "white" : "none"} size={32} color={active ? "white" : "#afafaf"} />
     </div>
   </div>
 );
 
+// --- APP PRINCIPAL ---
 function App() {
   const [course, setCourse] = useState(null)
   const [currentLesson, setCurrentLesson] = useState(null)
@@ -49,8 +48,17 @@ function App() {
   const [selectedOption, setSelectedOption] = useState(null)
   const [isCorrect, setIsCorrect] = useState(null)
   const [loadingAI, setLoadingAI] = useState(false);
+  const [timeTheme, setTimeTheme] = useState('day'); // 'day', 'sunset', 'night'
 
-  // Busca dados do Java
+  // 1. Detectar Horário para o Fundo
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 17) setTimeTheme('day');       // 06:00 - 16:59 (Dia)
+    else if (hour >= 17 && hour < 19) setTimeTheme('sunset'); // 17:00 - 18:59 (Pôr do sol)
+    else setTimeTheme('night');                            // 19:00 - 05:59 (Noite)
+  }, []);
+
+  // 2. Buscar dados do Java
   useEffect(() => {
     fetch('http://localhost:8080/courses')
       .then(res => res.json())
@@ -58,16 +66,15 @@ function App() {
       .catch(err => console.error("Erro backend:", err))
   }, [])
 
-  // Função para Gerar Lição Nova com IA
+  // 3. Gerar Lição com IA
   const gerarLicaoIA = () => {
     setLoadingAI(true);
     fetch('http://localhost:8080/courses/test-ai')
       .then(res => res.json())
       .then(novaQuestao => {
-        // Cria uma lição temporária com a questão da IA
         const licaoIA = {
             id: 999,
-            title: "Desafio IA",
+            title: "Desafio BMO (IA)",
             exercises: [novaQuestao]
         };
         startLesson(licaoIA);
@@ -76,7 +83,8 @@ function App() {
       .catch(err => {
         console.error("Erro IA:", err);
         setLoadingAI(false);
-        alert("Erro ao conectar com o BMO.");
+        // Mesmo com erro, o Backend já mandou o fallback, mas se falhar a rede:
+        alert("O BMO está dormindo. Tente novamente!");
       });
   };
 
@@ -107,7 +115,7 @@ function App() {
 
   if (!course) return <div className="loading-screen">Carregando o mundo...</div>
 
-  // Tela do Jogo
+  // --- TELA DO JOGO ---
   if (currentLesson) {
     const exercise = currentLesson.exercises[currentExerciseIndex]
     return (
@@ -115,8 +123,8 @@ function App() {
         <div className="progress-bar-container">
           <div className="close-btn" onClick={() => setCurrentLesson(null)}>✕</div>
           <div className="progress-bar">
-            <div 
-              className="progress-fill" 
+            <div
+              className="progress-fill"
               style={{ width: `${((currentExerciseIndex + 1) / currentLesson.exercises.length) * 100}%` }}
             ></div>
           </div>
@@ -124,11 +132,10 @@ function App() {
 
         <div className="exercise-container">
           <h1 className="question-text">{exercise.prompt}</h1>
-          
           <div className="options-grid">
             {exercise.options.map((opt, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className={`option-card ${selectedOption === opt ? 'selected' : ''} ${isCorrect !== null && opt.correct ? 'correct' : ''} ${isCorrect === false && selectedOption === opt ? 'wrong' : ''}`}
                 onClick={() => !isCorrect && setSelectedOption(opt)}
               >
@@ -142,23 +149,15 @@ function App() {
         <div className={`footer-feedback ${isCorrect !== null ? (isCorrect ? 'success' : 'error') : ''}`}>
           <div className="feedback-content">
             {isCorrect === true && (
-              <div className="feedback-message">
-                <div className="check-icon">✓</div>
-                <div><h3>Bom trabalho!</h3></div>
-              </div>
+              <div className="feedback-message"><div className="check-icon">✓</div><h3>Correto!</h3></div>
             )}
             {isCorrect === false && (
-              <div className="feedback-message">
-                <div className="check-icon">✕</div>
-                <div>
-                  <h3>A resposta correta é:</h3>
-                  <p>{exercise.correctAnswer}</p>
-                </div>
+              <div className="feedback-message"><div className="check-icon">✕</div>
+                <div><h3>Resposta correta:</h3><p>{exercise.correctAnswer}</p></div>
               </div>
             )}
-            
-            <button 
-              className={`check-btn ${selectedOption ? 'active' : ''}`} 
+            <button
+              className={`check-btn ${selectedOption ? 'active' : ''}`}
               onClick={isCorrect !== null ? nextExercise : checkAnswer}
             >
               {isCorrect !== null ? 'CONTINUAR' : 'VERIFICAR'}
@@ -169,46 +168,56 @@ function App() {
     )
   }
 
-  // Tela Principal
+  // --- TELA MAPA (COM FUNDO DINÂMICO) ---
   return (
-    <div className="app-container">
+    <div className={`app-container theme-${timeTheme}`}>
       <Sidebar />
       <main className="main-content">
         <Header />
+
         <div className="map-container">
+          {/* Cabeçalho da Unidade */}
           <div className="unit-header" style={{ backgroundColor: course.units[0].color }}>
             <div className="unit-info">
               <h2>Unidade 1</h2>
               <p>{course.units[0].title}</p>
             </div>
-            <button className="guide-btn"><Book size={16} /> Guia</button>
+            <button className="guide-btn"><Book size={16} /> GUIA</button>
           </div>
 
-          <div className="path-container">
-            <div style={{ textAlign: 'center', marginBottom: '40px', zIndex: 10 }}>
-                <button 
-                    className="ai-button"
-                    onClick={gerarLicaoIA} 
-                    disabled={loadingAI}
-                >
-                    {loadingAI ? "BMO Pensando... 🧠" : "✨ Gerar Nova Lição (IA)"}
-                </button>
-            </div>
+          {/* Botão da IA */}
+          <div className="ai-section">
+             <button className="ai-button" onClick={gerarLicaoIA} disabled={loadingAI}>
+                {loadingAI ? "BMO Processando..." : "✨ Gerar Missão IA"}
+             </button>
+          </div>
 
-            {course.units[0].lessons.map((lesson) => (
-              <LessonButton 
+          {/* Caminho das Lições */}
+          <div className="path-container">
+            {course.units[0].lessons.map((lesson, idx) => (
+              <LessonButton
                 key={lesson.id}
+                index={idx}
                 active={true}
                 color={course.units[0].color}
                 onClick={() => startLesson(lesson)}
               />
             ))}
-            <div className="bmo-character">
-              <img src="https://upload.wikimedia.org/wikipedia/en/5/52/BMO_Adventure_Time.png" alt="BMO" width="80" />
+
+            {/* BMO Character */}
+            <div className="bmo-container">
+                <img
+                  src="https://i.imgur.com/6Xq6X0o.png"
+                  alt="BMO"
+                  className="bmo-img"
+                  onError={(e) => {e.target.onerror = null; e.target.src="https://upload.wikimedia.org/wikipedia/en/5/52/BMO_Adventure_Time.png"}}
+                />
+                <div className="bmo-label">BMO</div>
             </div>
           </div>
         </div>
       </main>
+
       <div className="ranking-sidebar">
         <div className="ranking-card">
           <h3>Divisão Bronze</h3>
