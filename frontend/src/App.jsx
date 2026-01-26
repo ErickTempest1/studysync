@@ -1,433 +1,227 @@
-/* Reset básico */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Din Round', sans-serif; /* Fonte parecida com Duo */
+import { useState, useEffect } from 'react'
+import './App.css'
+import { Book, Star, Trophy, Zap, Shield, Flame, MoreHorizontal } from 'lucide-react'
+
+// Componente Sidebar
+const Sidebar = () => (
+  <div className="sidebar">
+    <div className="logo-container">
+      <h1 className="logo-text">duolingo</h1>
+    </div>
+    <nav className="nav-menu">
+      <a href="#" className="nav-item active"><Book size={24} /> <span>APRENDER</span></a>
+      <a href="#" className="nav-item"><Star size={24} /> <span>PRATICAR</span></a>
+      <a href="#" className="nav-item"><Trophy size={24} /> <span>RANKING</span></a>
+      <a href="#" className="nav-item"><MoreHorizontal size={24} /> <span>MAIS</span></a>
+    </nav>
+  </div>
+);
+
+// Componente Header
+const Header = () => (
+  <div className="header">
+    <div className="flag-icon">🇧🇷</div>
+    <div className="stats-container">
+      <div className="stat-item"><Flame size={20} className="text-orange-500" /> <span>0</span></div>
+      <div className="stat-item"><Shield size={20} className="text-blue-500" /> <span>5</span></div>
+      <div className="stat-item"><Zap size={20} className="text-yellow-500" /> <span>400</span></div>
+    </div>
+  </div>
+);
+
+// Componente Botão da Lição
+const LessonButton = ({ icon, active, onClick, color }) => (
+  <div className="lesson-path-item">
+    <div 
+      className={`lesson-circle ${active ? 'active' : ''}`} 
+      style={{ backgroundColor: active ? color : '#e5e7eb' }}
+      onClick={onClick}
+    >
+      {active ? <Star fill="white" size={32} color="white" /> : <Star size={32} color="#afafaf" />}
+    </div>
+  </div>
+);
+
+function App() {
+  const [course, setCourse] = useState(null)
+  const [currentLesson, setCurrentLesson] = useState(null)
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0)
+  const [selectedOption, setSelectedOption] = useState(null)
+  const [isCorrect, setIsCorrect] = useState(null)
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  // Busca dados do Java
+  useEffect(() => {
+    fetch('http://localhost:8080/courses')
+      .then(res => res.json())
+      .then(data => { if (data.length > 0) setCourse(data[0]) })
+      .catch(err => console.error("Erro backend:", err))
+  }, [])
+
+  // Função para Gerar Lição Nova com IA
+  const gerarLicaoIA = () => {
+    setLoadingAI(true);
+    fetch('http://localhost:8080/courses/test-ai')
+      .then(res => res.json())
+      .then(novaQuestao => {
+        // Cria uma lição temporária com a questão da IA
+        const licaoIA = {
+            id: 999,
+            title: "Desafio IA",
+            exercises: [novaQuestao]
+        };
+        startLesson(licaoIA);
+        setLoadingAI(false);
+      })
+      .catch(err => {
+        console.error("Erro IA:", err);
+        setLoadingAI(false);
+        alert("Erro ao conectar com o BMO.");
+      });
+  };
+
+  const startLesson = (lesson) => {
+    setCurrentLesson(lesson)
+    setCurrentExerciseIndex(0)
+    setSelectedOption(null)
+    setIsCorrect(null)
+  }
+
+  const checkAnswer = () => {
+    if (!selectedOption) return
+    const exercise = currentLesson.exercises[currentExerciseIndex]
+    const correct = selectedOption.correct
+    setIsCorrect(correct)
+  }
+
+  const nextExercise = () => {
+    if (currentExerciseIndex < currentLesson.exercises.length - 1) {
+      setCurrentExerciseIndex(currentExerciseIndex + 1)
+      setSelectedOption(null)
+      setIsCorrect(null)
+    } else {
+      alert("Lição Completa! 🎉")
+      setCurrentLesson(null)
+    }
+  }
+
+  if (!course) return <div className="loading-screen">Carregando o mundo...</div>
+
+  // Tela do Jogo
+  if (currentLesson) {
+    const exercise = currentLesson.exercises[currentExerciseIndex]
+    return (
+      <div className="game-screen">
+        <div className="progress-bar-container">
+          <div className="close-btn" onClick={() => setCurrentLesson(null)}>✕</div>
+          <div className="progress-bar">
+            <div 
+              className="progress-fill" 
+              style={{ width: `${((currentExerciseIndex + 1) / currentLesson.exercises.length) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
+        <div className="exercise-container">
+          <h1 className="question-text">{exercise.prompt}</h1>
+          
+          <div className="options-grid">
+            {exercise.options.map((opt, idx) => (
+              <div 
+                key={idx} 
+                className={`option-card ${selectedOption === opt ? 'selected' : ''} ${isCorrect !== null && opt.correct ? 'correct' : ''} ${isCorrect === false && selectedOption === opt ? 'wrong' : ''}`}
+                onClick={() => !isCorrect && setSelectedOption(opt)}
+              >
+                <div className="option-key">{String.fromCharCode(65 + idx)}</div>
+                <div className="option-text">{opt.text}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={`footer-feedback ${isCorrect !== null ? (isCorrect ? 'success' : 'error') : ''}`}>
+          <div className="feedback-content">
+            {isCorrect === true && (
+              <div className="feedback-message">
+                <div className="check-icon">✓</div>
+                <div><h3>Bom trabalho!</h3></div>
+              </div>
+            )}
+            {isCorrect === false && (
+              <div className="feedback-message">
+                <div className="check-icon">✕</div>
+                <div>
+                  <h3>A resposta correta é:</h3>
+                  <p>{exercise.correctAnswer}</p>
+                </div>
+              </div>
+            )}
+            
+            <button 
+              className={`check-btn ${selectedOption ? 'active' : ''}`} 
+              onClick={isCorrect !== null ? nextExercise : checkAnswer}
+            >
+              {isCorrect !== null ? 'CONTINUAR' : 'VERIFICAR'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Tela Principal
+  return (
+    <div className="app-container">
+      <Sidebar />
+      <main className="main-content">
+        <Header />
+        <div className="map-container">
+          <div className="unit-header" style={{ backgroundColor: course.units[0].color }}>
+            <div className="unit-info">
+              <h2>Unidade 1</h2>
+              <p>{course.units[0].title}</p>
+            </div>
+            <button className="guide-btn"><Book size={16} /> Guia</button>
+          </div>
+
+          <div className="path-container">
+            <div style={{ textAlign: 'center', marginBottom: '40px', zIndex: 10 }}>
+                <button 
+                    className="ai-button"
+                    onClick={gerarLicaoIA} 
+                    disabled={loadingAI}
+                >
+                    {loadingAI ? "BMO Pensando... 🧠" : "✨ Gerar Nova Lição (IA)"}
+                </button>
+            </div>
+
+            {course.units[0].lessons.map((lesson) => (
+              <LessonButton 
+                key={lesson.id}
+                active={true}
+                color={course.units[0].color}
+                onClick={() => startLesson(lesson)}
+              />
+            ))}
+            <div className="bmo-character">
+              <img src="https://upload.wikimedia.org/wikipedia/en/5/52/BMO_Adventure_Time.png" alt="BMO" width="80" />
+            </div>
+          </div>
+        </div>
+      </main>
+      <div className="ranking-sidebar">
+        <div className="ranking-card">
+          <h3>Divisão Bronze</h3>
+          <div className="ranking-item active">
+            <div className="rank-num">1</div>
+            <div className="rank-avatar">🐧</div>
+            <div className="rank-name">Você</div>
+            <div className="rank-xp">400 XP</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-body {
-  background-color: #ffffff;
-  color: #3c3c3c;
-}
-
-/* Layout Principal */
-.app-container {
-  display: flex;
-  min-height: 100vh;
-}
-
-/* Sidebar (Menu Lateral) */
-.sidebar {
-  width: 256px;
-  background: #fff;
-  border-right: 2px solid #e5e5e5;
-  padding: 24px;
-  position: fixed;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.logo-text {
-  color: #58cc02;
-  font-size: 32px;
-  font-weight: bold;
-  letter-spacing: -1px;
-  margin-bottom: 30px;
-  padding-left: 10px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  border-radius: 12px;
-  color: #777;
-  text-decoration: none;
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 14px;
-  letter-spacing: 0.8px;
-  border: 2px solid transparent;
-  transition: background 0.2s;
-}
-
-.nav-item:hover {
-  background-color: #f7f7f7;
-}
-
-.nav-item.active {
-  color: #1cb0f6;
-  background-color: #ddf4ff;
-  border-color: #84d8ff;
-}
-
-.nav-item span {
-  margin-left: 20px;
-}
-
-/* Conteúdo Principal */
-.main-content {
-  margin-left: 256px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  max-width: 600px;
-  margin-right: 350px; /* Espaço para o ranking */
-}
-
-/* Header (Topo) */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 40px;
-  background: white;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.flag-icon {
-  font-size: 24px;
-  border: 2px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 4px 8px;
-}
-
-.stats-container {
-  display: flex;
-  gap: 20px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: bold;
-  color: #afafaf;
-}
-
-.stat-item span {
-  color: #afafaf;
-}
-
-/* Mapa das Lições */
-.map-container {
-  padding: 20px 40px 100px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.unit-header {
-  width: 100%;
-  border-radius: 16px;
-  padding: 24px;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  box-shadow: 0 6px 0 rgba(0,0,0,0.2);
-}
-
-.unit-info h2 {
-  font-size: 24px;
-  margin-bottom: 5px;
-}
-
-.guide-btn {
-  background: transparent;
-  border: 2px solid rgba(255,255,255,0.4);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 12px;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Caminho das Lições (Cobra) */
-.path-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  position: relative;
-}
-
-.lesson-path-item {
-  position: relative;
-  z-index: 2;
-}
-
-/* Fazendo o zigue-zague simples */
-.lesson-path-item:nth-child(odd) { transform: translateX(-30px); }
-.lesson-path-item:nth-child(even) { transform: translateX(30px); }
-
-.lesson-circle {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  box-shadow: 0 8px 0 rgba(0,0,0,0.2);
-  transition: transform 0.1s, box-shadow 0.1s;
-  position: relative;
-}
-
-.lesson-circle:active {
-  transform: translateY(4px);
-  box-shadow: 0 4px 0 rgba(0,0,0,0.2);
-}
-
-/* BMO */
-.bmo-character {
-  position: absolute;
-  bottom: 20px;
-  left: -120px;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
-/* Ranking Sidebar */
-.ranking-sidebar {
-  width: 350px;
-  position: fixed;
-  right: 0;
-  height: 100%;
-  padding: 24px;
-  background-color: white;
-}
-
-.ranking-card {
-  border: 2px solid #e5e5e5;
-  border-radius: 16px;
-  padding: 20px;
-}
-
-.ranking-card h3 {
-  color: #3c3c3c;
-  margin-bottom: 10px;
-}
-
-.ranking-item {
-  display: flex;
-  align-items: center;
-  margin-top: 20px;
-  padding: 10px;
-  border-radius: 12px;
-}
-
-.ranking-item.active {
-  background-color: #ddf4ff;
-  border: 2px solid #84d8ff;
-}
-
-.rank-avatar {
-  font-size: 24px;
-  margin: 0 15px;
-}
-
-.rank-name {
-  font-weight: bold;
-  flex: 1;
-}
-
-.rank-xp {
-  color: #777;
-}
-
-/* --- TELA DO JOGO --- */
-.game-screen {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 40px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.progress-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.close-btn {
-  font-size: 24px;
-  color: #e5e5e5;
-  cursor: pointer;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 16px;
-  background-color: #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #58cc02;
-  transition: width 0.3s ease;
-}
-
-.question-text {
-  font-size: 32px;
-  color: #3c3c3c;
-  margin-bottom: 40px;
-  text-align: center;
-}
-
-.options-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 15px;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.option-card {
-  border: 2px solid #e5e5e5;
-  border-radius: 16px;
-  padding: 15px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 0 #e5e5e5;
-}
-
-.option-card:hover {
-  background-color: #f7f7f7;
-}
-
-.option-card.selected {
-  border-color: #84d8ff;
-  background-color: #ddf4ff;
-  box-shadow: 0 2px 0 #84d8ff;
-}
-
-.option-card.correct {
-  border-color: #58cc02;
-  background-color: #d7ffb8;
-  color: #58a700;
-}
-
-.option-card.wrong {
-  border-color: #ff4b4b;
-  background-color: #ffdfe0;
-  color: #ea2b2b;
-}
-
-.option-key {
-  border: 2px solid #e5e5e5;
-  border-radius: 8px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 15px;
-  font-weight: bold;
-  color: #777;
-}
-
-.option-card.selected .option-key {
-  border-color: #84d8ff;
-  color: #1cb0f6;
-}
-
-/* Footer de Feedback */
-.footer-feedback {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 30px;
-  border-top: 2px solid #e5e5e5;
-  background: white;
-}
-
-.footer-feedback.success {
-  background-color: #d7ffb8;
-  border-color: #58cc02;
-  color: #58a700;
-}
-
-.footer-feedback.error {
-  background-color: #ffdfe0;
-  border-color: #ff4b4b;
-  color: #ea2b2b;
-}
-
-.feedback-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.feedback-message {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.check-icon {
-  width: 60px;
-  height: 60px;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30px;
-}
-
-.footer-feedback.success .check-icon { color: #58cc02; }
-.footer-feedback.error .check-icon { color: #ff4b4b; }
-
-.check-btn {
-  background-color: #e5e5e5;
-  color: #afafaf;
-  border: none;
-  padding: 15px 40px;
-  border-radius: 16px;
-  font-size: 18px;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.check-btn.active {
-  background-color: #58cc02;
-  color: white;
-  box-shadow: 0 4px 0 #58a700;
-  cursor: pointer;
-}
-
-.footer-feedback.error .check-btn {
-  background-color: #ff4b4b;
-  box-shadow: 0 4px 0 #ea2b2b;
-}
+export default App
