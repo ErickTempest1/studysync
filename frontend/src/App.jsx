@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+// IMPORTANTE: Importando a imagem local
+import bmoImg from './assets/BMO.png'
 
 // --- COMPONENTES DO CÉU (SVGs) ---
 const Sun = ({ isSunset }) => (
@@ -57,11 +59,9 @@ function App() {
   const [status, setStatus] = useState('none')
   const [loadingAI, setLoadingAI] = useState(false);
 
-  // Estado do Tempo e Mascote
   const [timeTheme, setTimeTheme] = useState('day')
   const [bmoMessage, setBmoMessage] = useState("Vamos codar!")
 
-  // 1. Detectar Hora
   useEffect(() => {
     const updateTime = () => {
       const hour = new Date().getHours()
@@ -72,7 +72,6 @@ function App() {
     updateTime()
   }, [])
 
-  // 2. Busca dados do Backend (Porta 8080)
   useEffect(() => {
     fetch('http://localhost:8080/courses')
       .then(res => res.json())
@@ -80,7 +79,6 @@ function App() {
       .catch(err => console.error("Erro Backend:", err))
   }, [])
 
-  // 3. IA com Fallback
   const gerarLicaoIA = () => {
     setLoadingAI(true);
     setBmoMessage("Processando na nuvem...");
@@ -94,7 +92,6 @@ function App() {
       .catch(err => {
         console.error("Erro IA:", err);
         setLoadingAI(false);
-        // Fallback manual se a rede falhar
         const fallback = {
             id: 999,
             title: "Modo Offline",
@@ -125,19 +122,16 @@ function App() {
 
   const checkAnswer = () => {
     if(!selectedOption) return;
-    // Tenta ler 'isCorrect' (padrão local) ou 'correct' (padrão IA)
     const isRight = selectedOption.isCorrect !== undefined ? selectedOption.isCorrect : selectedOption.correct;
     setStatus(isRight ? 'correct' : 'wrong')
     setBmoMessage(isRight ? "Compilado com sucesso! 🎉" : "Erro de sintaxe... 🐛")
   }
 
-  // --- RENDERIZAÇÃO ---
   if (!course) return <div className={`app-container ${timeTheme} loading`}>Carregando o mundo...</div>
 
   return (
     <div className={`app-container ${timeTheme}`}>
 
-      {/* BACKGROUND (CÉU E MAR) */}
       <div className="background-layer">
          {timeTheme === 'day' && <><Sun /><Clouds /></>}
          {timeTheme === 'sunset' && <><Sun isSunset /><Clouds /></>}
@@ -153,22 +147,19 @@ function App() {
          </div>
       </div>
 
-      {/* BMO (MASCOTE) */}
+      {/* AQUI ESTÁ A MUDANÇA DA IMAGEM */}
       <div className="alive-bmo" onClick={pokeBmo}>
         <div className={`bmo-speech ${status}`}>
             {bmoMessage}
         </div>
         <img
-            src="https://media.discordapp.net/attachments/1080277732644655164/1136423432427974716/BMO.png"
+            src={bmoImg}
             alt="BMO"
             className="bmo-img animate-float"
         />
       </div>
 
-      {/* CONTEÚDO (MAPA OU JOGO) */}
       <div className="content-wrapper">
-
-        {/* --- MODO JOGO --- */}
         {activeLesson ? (
             <div className="game-card">
                 <div className="game-header">
@@ -194,7 +185,6 @@ function App() {
                 </div>
             </div>
         ) : (
-        /* --- MODO MAPA --- */
             <div className="map-view">
                 <header className="map-header">
                     <span className="course-title">🐧 {course.title}</span>
@@ -209,7 +199,6 @@ function App() {
                                 <p>Unidade {unit.orderIndex}</p>
                             </div>
                             <div className="lessons-path">
-                                {/* BOTÃO DA IA NO TOPO DO CAMINHO */}
                                 <div className="lesson-node ai-node">
                                     <button onClick={gerarLicaoIA} disabled={loadingAI} className="ai-btn">
                                         {loadingAI ? "🧠..." : "✨ IA"}
