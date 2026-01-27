@@ -2,6 +2,8 @@ package com.duolingo.clone.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -11,8 +13,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class GeminiService {
@@ -25,85 +27,81 @@ public class GeminiService {
 
     public String gerarExercicio(String tema) {
         try {
-            System.out.println("🐧 BMO: Consultando a QuizAPI sobre JavaScript...");
+            System.out.println("🐧 BMO: Buscando 8 questões sobre JavaScript...");
 
             RestTemplate restTemplate = new RestTemplate();
-
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Api-Key", apiKey);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            // MUDANÇA AQUI: Adicionamos '&tags=JavaScript'
-            // Isso garante que só venham perguntas dessa linguagem
-            String finalUrl = apiUrl + "?limit=1&tags=JavaScript";
+            // MUDANÇA 1: Pedimos 8 questões de uma vez
+            String finalUrl = apiUrl + "?limit=8&tags=JavaScript";
 
             ResponseEntity<String> response = restTemplate.exchange(finalUrl, HttpMethod.GET, entity, String.class);
 
-            // 3. Lê a resposta
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(response.getBody());
 
-            // A QuizAPI devolve uma lista [ {} ], pegamos o primeiro item
-            if (root.isArray() && !root.isEmpty()) {
-                JsonNode questaoOriginal = root.get(0);
-                return converterParaNossoFormato(questaoOriginal);
+            // MUDANÇA 2: Criamos uma lista de exercícios, não só um
+            ObjectNode resultJson = mapper.createObjectNode();
+            ArrayNode exercisesArray = mapper.createArrayNode();
+
+            if (root.isArray()) {
+                for (JsonNode questaoOriginal : root) {
+                    exercisesArray.add(converterQuestao(questaoOriginal, mapper));
+                }
             }
 
-            return fallback("Não encontrei perguntas novas...");
+            // Retorna o JSON no formato que o Exercise do Java espera (mas como JSON String)
+            // O frontend vai receber isso dentro de "exercises"
+            return exercisesArray.toString();
 
         } catch (Exception e) {
             System.err.println("⚠️ Erro na QuizAPI: " + e.getMessage());
-            return fallback("O BMO perdeu a conexão. (Modo Offline)");
+            return fallback();
         }
     }
 
-    // --- MÁGICA: Tradutor de QuizAPI -> Duolingo Clone ---
-    private String converterParaNossoFormato(JsonNode q) {
-        try {
-            String pergunta = q.get("question").asText();
+    private JsonNode converterQuestao(JsonNode q, ObjectMapper mapper) {
+        ObjectNode novoJson = mapper.createObjectNode();
 
-            // Descobre qual letra é a correta (answer_a_correct: "true")
-            JsonNode correctAnswers = q.get("correct_answers");
-            String letraCorreta = null;
+        String pergunta = q.get("question").asText();
+        // Tenta pegar a explicação da API. Se for null, cria uma genérica.
+        String explicacao = q.has("explanation") && !q.get("explanation").isNull()
+                ? q.get("explanation").asText()
+                : "Resposta correta baseada na sintaxe padrão do JavaScript.";
 
-            if ("true".equals(correctAnswers.get("answer_a_correct").asText())) letraCorreta = "answer_a";
-            else if ("true".equals(correctAnswers.get("answer_b_correct").asText())) letraCorreta = "answer_b";
-            else if ("true".equals(correctAnswers.get("answer_c_correct").asText())) letraCorreta = "answer_c";
-            else if ("true".equals(correctAnswers.get("answer_d_correct").asText())) letraCorreta = "answer_d";
+        // Descobre a resposta certa
+        JsonNode correctAnswers = q.get("correct_answers");
+        String letraCorreta = null;
+        if ("true".equals(correctAnswers.get("answer_a_correct").asText())) letraCorreta = "answer_a";
+        else if ("true".equals(correctAnswers.get("answer_b_correct").asText())) letraCorreta = "answer_b";
+        else if ("true".equals(correctAnswers.get("answer_c_correct").asText())) letraCorreta = "answer_c";
+        else if ("true".equals(correctAnswers.get("answer_d_correct").asText())) letraCorreta = "answer_d";
 
-            // Pega o texto da resposta certa
-            JsonNode answers = q.get("answers");
-            String textoRespostaCorreta = answers.get(letraCorreta).asText();
+        JsonNode answers = q.get("answers");
+        String textoRespostaCorreta = answers.get(letraCorreta).asText();
 
-            // Monta o JSON manualmente para não precisar de classes extras
-            StringBuilder json = new StringBuilder();
-            json.append("{");
-            json.append("\"prompt\": \"").append(limparTexto(pergunta)).append("\",");
-            json.append("\"correctAnswer\": \"").append(limparTexto(textoRespostaCorreta)).append("\",");
-            json.append("\"options\": [");
+        novoJson.put("prompt", limparTexto(pergunta));
+        novoJson.put("correctAnswer", limparTexto(textoRespostaCorreta));
+        novoJson.put("explanation", limparTexto(explicacao)); // NOVO CAMPO!
 
-            // Adiciona as opções válidas (remove as nulas)
-            List<String> optionsJson = new ArrayList<>();
-            addOptionIfValid(optionsJson, answers, "answer_a", letraCorreta);
-            addOptionIfValid(optionsJson, answers, "answer_b", letraCorreta);
-            addOptionIfValid(optionsJson, answers, "answer_c", letraCorreta);
-            addOptionIfValid(optionsJson, answers, "answer_d", letraCorreta);
+        ArrayNode optionsArray = mapper.createArrayNode();
+        addOptionIfValid(optionsArray, answers, "answer_a", letraCorreta, mapper);
+        addOptionIfValid(optionsArray, answers, "answer_b", letraCorreta, mapper);
+        addOptionIfValid(optionsArray, answers, "answer_c", letraCorreta, mapper);
+        addOptionIfValid(optionsArray, answers, "answer_d", letraCorreta, mapper);
 
-            json.append(String.join(",", optionsJson));
-            json.append("]}");
-
-            return json.toString();
-
-        } catch (Exception e) {
-            return fallback("Erro ao traduzir questão.");
-        }
+        novoJson.set("options", optionsArray);
+        return novoJson;
     }
 
-    private void addOptionIfValid(List<String> list, JsonNode answers, String key, String correctKey) {
+    private void addOptionIfValid(ArrayNode list, JsonNode answers, String key, String correctKey, ObjectMapper mapper) {
         if (answers.has(key) && !answers.get(key).isNull()) {
-            String text = limparTexto(answers.get(key).asText());
-            boolean isCorrect = key.equals(correctKey);
-            list.add(String.format("{\"text\": \"%s\", \"correct\": %b}", text, isCorrect));
+            ObjectNode opt = mapper.createObjectNode();
+            opt.put("text", limparTexto(answers.get(key).asText()));
+            opt.put("correct", key.equals(correctKey));
+            list.add(opt);
         }
     }
 
@@ -112,15 +110,15 @@ public class GeminiService {
         return text.replace("\"", "'").replace("\n", " ").trim();
     }
 
-    private String fallback(String msg) {
-        return "{\n" +
-                "  \"prompt\": \"" + msg + " Qual a saída de: console.log('Oi')?\",\n" +
-                "  \"correctAnswer\": \"Oi\",\n" +
+    private String fallback() {
+        return "[{\n" +
+                "  \"prompt\": \"(Offline) Qual comando imprime no console?\",\n" +
+                "  \"correctAnswer\": \"console.log()\",\n" +
+                "  \"explanation\": \"console.log é a função padrão para saída de debug.\",\n" +
                 "  \"options\": [\n" +
-                "    {\"text\": \"Erro\", \"correct\": false},\n" +
-                "    {\"text\": \"Oi\", \"correct\": true},\n" +
-                "    {\"text\": \"Undefined\", \"correct\": false}\n" +
+                "    {\"text\": \"print()\", \"correct\": false},\n" +
+                "    {\"text\": \"console.log()\", \"correct\": true}\n" +
                 "  ]\n" +
-                "}";
+                "}]";
     }
 }

@@ -134,3 +134,59 @@ svg[class^="wave-layer-"] { position: absolute; bottom: 0; width: 100%; transiti
 @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
 @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8); } 70% { box-shadow: 0 0 0 25px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* --- FOOTER & FEEDBACK SHEET --- */
+.game-footer {
+    width: 100%;
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+/* Painel de Feedback (A gaveta) */
+.feedback-sheet {
+    animation: slideUp 0.3s ease-out;
+    background: transparent;
+    border-top: 2px solid transparent;
+}
+
+.game-footer.correct .feedback-sheet { color: #58a700; }
+.game-footer.wrong .feedback-sheet { color: #ea2b2b; }
+
+.feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.icon-circle {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    color: white;
+}
+.icon-circle.correct { background: #58cc02; }
+.icon-circle.wrong { background: #ff4b4b; }
+
+.feedback-text {
+    background: #f7f7f7;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    color: #4b5563;
+    font-size: 16px;
+    line-height: 1.5;
+    border-left: 5px solid #e5e5e5;
+}
+.game-footer.correct .feedback-text { border-left-color: #58cc02; background: #d7ffb8; color: #1a4d03; }
+.game-footer.wrong .feedback-text { border-left-color: #ff4b4b; background: #ffdfe0; color: #5e0a0a; }
+
+/* Botões Variantes */
+.btn-correct { background: #58cc02; box-shadow: 0 6px 0 #46a302; }
+.btn-wrong { background: #ff4b4b; box-shadow: 0 6px 0 #ea2b2b; }
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
