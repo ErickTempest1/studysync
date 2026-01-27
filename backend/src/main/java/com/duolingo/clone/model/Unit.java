@@ -1,8 +1,8 @@
 package com.duolingo.clone.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -10,31 +10,31 @@ public class Unit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String title;
-    private Integer orderIndex;
+    private int orderIndex;
     private String color;
 
     @ManyToOne
     @JoinColumn(name = "course_id")
-    @JsonBackReference
+    @JsonIgnore
     private Course course;
 
     @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<Lesson> lessons;
+    private List<Lesson> lessons = new ArrayList<>();
 
-    // --- Manual Getters and Setters ---
+    public Unit() {}
+
+    // CONSTRUTOR QUE FALTAVA:
+    public Unit(String title, int orderIndex, String color, Course course) {
+        this.title = title;
+        this.orderIndex = orderIndex;
+        this.color = color;
+        this.course = course;
+    }
+
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
     public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public Integer getOrderIndex() { return orderIndex; }
-    public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+    public int getOrderIndex() { return orderIndex; }
     public String getColor() { return color; }
-    public void setColor(String color) { this.color = color; }
-    public Course getCourse() { return course; }
-    public void setCourse(Course course) { this.course = course; }
     public List<Lesson> getLessons() { return lessons; }
-    public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }
 }

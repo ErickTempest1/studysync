@@ -1,8 +1,8 @@
 package com.duolingo.clone.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -11,32 +11,35 @@ public class Exercise {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    private ExerciseType type;
-
+    @Column(length = 1000) // Aumentando tamanho pra caber perguntas grandes
     private String prompt;
-    private String correctAnswer;
 
     @ManyToOne
     @JoinColumn(name = "lesson_id")
-    @JsonBackReference
+    @JsonIgnore
     private Lesson lesson;
 
     @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<ExerciseOption> options;
+    private List<ExerciseOption> options = new ArrayList<>();
 
-    // --- Manual Getters and Setters ---
+    public Exercise() {}
+
+    // CONSTRUTOR QUE FALTAVA:
+    public Exercise(String prompt, Lesson lesson) {
+        this.prompt = prompt;
+        this.lesson = lesson;
+    }
+
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public ExerciseType getType() { return type; }
-    public void setType(ExerciseType type) { this.type = type; }
     public String getPrompt() { return prompt; }
-    public void setPrompt(String prompt) { this.prompt = prompt; }
-    public String getCorrectAnswer() { return correctAnswer; }
-    public void setCorrectAnswer(String correctAnswer) { this.correctAnswer = correctAnswer; }
-    public Lesson getLesson() { return lesson; }
-    public void setLesson(Lesson lesson) { this.lesson = lesson; }
     public List<ExerciseOption> getOptions() { return options; }
-    public void setOptions(List<ExerciseOption> options) { this.options = options; }
+
+    // Helper para pegar a resposta certa (útil pro Frontend antigo, mas o novo usa a lista de options)
+    public String getCorrectAnswer() {
+        return options.stream()
+                .filter(ExerciseOption::isCorrect)
+                .map(ExerciseOption::getText)
+                .findFirst()
+                .orElse("");
+    }
 }

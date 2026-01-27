@@ -1,8 +1,8 @@
 package com.duolingo.clone.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -10,31 +10,27 @@ public class Lesson {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String title;
-    private Integer orderIndex;
-    private Integer totalXp;
+    private int orderIndex;
 
     @ManyToOne
     @JoinColumn(name = "unit_id")
-    @JsonBackReference
+    @JsonIgnore
     private Unit unit;
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<Exercise> exercises;
+    private List<Exercise> exercises = new ArrayList<>();
 
-    // --- Manual Getters and Setters ---
+    public Lesson() {}
+
+    // CONSTRUTOR QUE FALTAVA:
+    public Lesson(String title, int orderIndex, Unit unit) {
+        this.title = title;
+        this.orderIndex = orderIndex;
+        this.unit = unit;
+    }
+
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
     public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public Integer getOrderIndex() { return orderIndex; }
-    public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
-    public Integer getTotalXp() { return totalXp; }
-    public void setTotalXp(Integer totalXp) { this.totalXp = totalXp; }
-    public Unit getUnit() { return unit; }
-    public void setUnit(Unit unit) { this.unit = unit; }
     public List<Exercise> getExercises() { return exercises; }
-    public void setExercises(List<Exercise> exercises) { this.exercises = exercises; }
 }
