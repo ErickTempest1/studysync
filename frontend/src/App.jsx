@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import bmoImg from './assets/BMO.png'
-import { Star, Heart, Lock, Check, X, Info } from 'lucide-react'
+import { Star, Lock, Check, X } from 'lucide-react'
 
-// --- BACKGROUNDS (Mantidos iguais) ---
+// --- BACKGROUNDS ---
 const Sun = ({ isSunset }) => (
   <div className={`celestial-body ${isSunset ? 'sunset-sun' : 'day-sun'}`}>
     <svg viewBox="0 0 100 100" width="100%" height="100%">
@@ -37,8 +37,8 @@ const Stars = () => (
     </div>
 )
 
-// --- TELA DE VITÓRIA ---
-const VictoryScreen = ({ xpGained, onContinue }) => {
+// --- TELA DE VITÓRIA (LIMPA) ---
+const VictoryScreen = ({ onContinue }) => {
     return (
         <div className="victory-overlay">
             <div className="victory-card">
@@ -48,11 +48,15 @@ const VictoryScreen = ({ xpGained, onContinue }) => {
                 </div>
                 <h2>Lição Completa!</h2>
                 <img src={bmoImg} className="victory-img" alt="BMO Happy" />
-                <div className="stats-row">
-                    <div className="stat-pill xp"><span>💎</span> +{xpGained} XP</div>
-                    <div className="stat-pill speed"><span>⚡</span> Super Rápido!</div>
-                </div>
-                <button className="action-btn victory-btn" onClick={onContinue}>CONTINUAR</button>
+
+                {/* Removi os stats de XP e Vidas */}
+                <p style={{color: '#666', fontWeight: 'bold', margin: '10px 0'}}>
+                    Você está mandando muito bem!
+                </p>
+
+                <button className="action-btn victory-btn" onClick={onContinue}>
+                    CONTINUAR
+                </button>
             </div>
         </div>
     );
@@ -69,16 +73,11 @@ function App() {
   const [timeTheme, setTimeTheme] = useState('day')
   const [bmoMessage, setBmoMessage] = useState("Vamos codar!")
 
-  // Save System
+  // Save System (Apenas Progresso agora, sem XP/Vidas)
   const [showVictory, setShowVictory] = useState(false);
-  const [sessionXp, setSessionXp] = useState(0);
   const [unlockedIndex, setUnlockedIndex] = useState(() => parseInt(localStorage.getItem('duo_progress')) || 0);
-  const [xp, setXp] = useState(() => parseInt(localStorage.getItem('duo_xp')) || 0);
-  const [hearts, setHearts] = useState(() => parseInt(localStorage.getItem('duo_hearts')) || 5);
 
   useEffect(() => { localStorage.setItem('duo_progress', unlockedIndex) }, [unlockedIndex]);
-  useEffect(() => { localStorage.setItem('duo_xp', xp) }, [xp]);
-  useEffect(() => { localStorage.setItem('duo_hearts', hearts) }, [hearts]);
 
   useEffect(() => {
     const updateTime = () => {
@@ -99,9 +98,9 @@ function App() {
 
   const handleLessonStart = (lesson, index) => {
       if (index > unlockedIndex) { setBmoMessage("Fase bloqueada! 🔒"); return; }
-      if (hearts <= 0) { setBmoMessage("Sem vidas! 💔"); alert("Sem vidas! Espere ou reinicie."); return; }
 
-      setSessionXp(0);
+      // Removida a verificação de vidas (hearts <= 0)
+
       setShowVictory(false);
 
       if (lesson.exercises && lesson.exercises.length > 0) {
@@ -117,10 +116,7 @@ function App() {
     fetch('http://localhost:8080/courses/test-ai')
       .then(res => res.json())
       .then(novasQuestoes => {
-        // O Backend agora retorna UMA LISTA de exercícios
-        // Se vier só um objeto, a gente converte pra array
         const listaExercicios = Array.isArray(novasQuestoes) ? novasQuestoes : [novasQuestoes];
-
         const licaoIA = { ...lesson, exercises: listaExercicios };
         startLessonGame(licaoIA);
         setLoadingAI(false);
@@ -148,14 +144,12 @@ function App() {
 
     if (isRight) {
         setBmoMessage("Correto!");
-        setXp(prev => prev + 10);
-        setSessionXp(prev => prev + 10);
         const snd = new Audio("https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg");
         snd.volume = 0.2;
         snd.play().catch(()=>{});
     } else {
-        setBmoMessage("Ops!");
-        setHearts(prev => Math.max(0, prev - 1));
+        setBmoMessage("Ops! Veja a explicação.");
+        // Não removemos mais vidas aqui
     }
   }
 
@@ -185,7 +179,7 @@ function App() {
 
   const resetProgress = () => {
       if(confirm("Reiniciar progresso?")) {
-          setUnlockedIndex(0); setXp(0); setHearts(5);
+          setUnlockedIndex(0);
           setBmoMessage("Memória apagada! 😵‍💫");
       }
   }
@@ -222,7 +216,7 @@ function App() {
 
       <div className="content-wrapper">
 
-        {showVictory && <VictoryScreen xpGained={sessionXp} onContinue={closeVictory} />}
+        {showVictory && <VictoryScreen onContinue={closeVictory} />}
 
         {/* --- TELA DE JOGO --- */}
         {activeLesson && !showVictory ? (
@@ -233,7 +227,7 @@ function App() {
                     <div className="progress-bar">
                         <div className="fill" style={{ width: `${((currentExerciseIndex) / (activeLesson.exercises.length)) * 100}%` }}></div>
                     </div>
-                    <div className="hearts-display"><Heart fill="red" color="red" size={20} /> {hearts}</div>
+                    {/* Removida a exibição de Vidas aqui */}
                 </div>
 
                 <div className="game-body">
@@ -285,8 +279,8 @@ function App() {
                 <header className="map-header">
                     <span className="course-title" onClick={resetProgress} style={{cursor:'pointer'}}>🐧 {course.title}</span>
                     <div className="stats">
-                        <span className="stat-box">💎 {xp} XP</span>
-                        <span className="stat-box"><Heart fill="#ff4b4b" color="#ff4b4b" size={18}/> {hearts}</span>
+                        {/* Apenas o ícone de engrenagem ou vazio, já que não temos mais stats */}
+                        <span className="stat-box" style={{opacity:0.6}}>Modo Estudo 📚</span>
                     </div>
                 </header>
                 <div className="units-list">
