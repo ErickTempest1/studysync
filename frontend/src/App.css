@@ -99,3 +99,41 @@
 .action-btn { width: 100%; padding: 16px; border-radius: 16px; font-weight: 800; font-size: 18px; color: white; border: none; background: #58cc02; box-shadow: 0 5px 0 #46a302; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; }
 .action-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #46a302; }
 .action-btn:disabled { background: #e5e5e5; color: #9ca3af; box-shadow: none; cursor: not-allowed; }
+/* --- TELA DE VITÓRIA --- */
+.victory-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    z-index: 100;
+    display: flex; justify-content: center; align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.victory-card {
+    background: white;
+    width: 90%; max-width: 400px;
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+}
+
+.victory-header { font-size: 60px; margin-bottom: -20px; position: relative; }
+.star-burst { animation: spin 10s linear infinite; display: inline-block; }
+.star-burst.small { font-size: 30px; position: absolute; top: 0; right: 0; animation: pulse 1s infinite; }
+
+.victory-card h2 { color: #facc15; font-size: 32px; font-weight: 900; margin: 0; text-transform: uppercase; text-shadow: 2px 2px 0px #d97706; }
+
+.victory-img { width: 150px; animation: bounce 1s infinite alternate; }
+
+.stats-row { display: flex; gap: 15px; width: 100%; justify-content: center; }
+.stat-pill { background: #f3f4f6; padding: 10px 20px; border-radius: 15px; font-weight: 800; color: #4b5563; border: 2px solid #e5e5e5; display: flex; align-items: center; gap: 8px; }
+.stat-pill.xp { color: #3b82f6; border-color: #3b82f6; background: #eff6ff; }
+.stat-pill.speed { color: #f59e0b; border-color: #f59e0b; background: #fffbeb; }
+
+.victory-btn { background: #58cc02; box-shadow: 0 6px 0 #46a302; margin-top: 10px; width: 100%; }
+.victory-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #46a302; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

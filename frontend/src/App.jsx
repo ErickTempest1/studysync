@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import bmoImg from './assets/BMO.png'
-import { Book, Star, Trophy, Zap, Shield, Flame, Heart, Lock, Check } from 'lucide-react' // Adicionei Heart
+import { Book, Star, Trophy, Zap, Shield, Flame, Heart, Lock, Check, X } from 'lucide-react'
 
-// --- BACKGROUND COMPONENTS (Mantidos iguais) ---
+// --- BACKGROUNDS ---
 const Sun = ({ isSunset }) => (
   <div className={`celestial-body ${isSunset ? 'sunset-sun' : 'day-sun'}`}>
     <svg viewBox="0 0 100 100" width="100%" height="100%">
@@ -37,7 +37,36 @@ const Stars = () => (
   </div>
 )
 
-// --- COMPONENTE PRINCIPAL ---
+// --- COMPONENTE: TELA DE VITÓRIA ---
+const VictoryScreen = ({ xpGained, onContinue }) => {
+    return (
+        <div className="victory-overlay">
+            <div className="victory-card">
+                <div className="victory-header">
+                    <div className="star-burst">⭐</div>
+                    <div className="star-burst small">✨</div>
+                </div>
+                <h2>Lição Completa!</h2>
+                <img src={bmoImg} className="victory-img" alt="BMO Happy" />
+
+                <div className="stats-row">
+                    <div className="stat-pill xp">
+                        <span>💎</span> +{xpGained} XP
+                    </div>
+                    <div className="stat-pill speed">
+                        <span>⚡</span> Super Rápido!
+                    </div>
+                </div>
+
+                <button className="action-btn victory-btn" onClick={onContinue}>
+                    CONTINUAR
+                </button>
+            </div>
+        </div>
+    );
+};
+
+// --- APP PRINCIPAL ---
 function App() {
   const [course, setCourse] = useState(null)
   const [activeLesson, setActiveLesson] = useState(null)
@@ -48,18 +77,20 @@ function App() {
   const [timeTheme, setTimeTheme] = useState('day')
   const [bmoMessage, setBmoMessage] = useState("Vamos codar!")
 
-  // --- ESTADOS DO JOGO (COM MEMÓRIA/PERSISTÊNCIA) ---
-  // Tenta ler do localStorage ao iniciar, se não tiver, usa o padrão
+  // ESTADOS DE JOGO
+  const [showVictory, setShowVictory] = useState(false);
+  const [sessionXp, setSessionXp] = useState(0);
+
+  // --- PERSISTÊNCIA (SAVE SYSTEM) ---
   const [unlockedIndex, setUnlockedIndex] = useState(() => parseInt(localStorage.getItem('duo_progress')) || 0);
   const [xp, setXp] = useState(() => parseInt(localStorage.getItem('duo_xp')) || 0);
   const [hearts, setHearts] = useState(() => parseInt(localStorage.getItem('duo_hearts')) || 5);
 
-  // Efeito para Salvar sempre que mudar
+  // Salva no navegador sempre que mudar
   useEffect(() => { localStorage.setItem('duo_progress', unlockedIndex) }, [unlockedIndex]);
   useEffect(() => { localStorage.setItem('duo_xp', xp) }, [xp]);
   useEffect(() => { localStorage.setItem('duo_hearts', hearts) }, [hearts]);
 
-  // Relógio do Céu
   useEffect(() => {
     const updateTime = () => {
       const hour = new Date().getHours()
@@ -70,7 +101,6 @@ function App() {
     updateTime()
   }, [])
 
-  // Buscar Curso
   useEffect(() => {
     fetch('http://localhost:8080/courses')
       .then(res => res.json())
@@ -78,21 +108,12 @@ function App() {
       .catch(err => console.error("Erro Backend:", err))
   }, [])
 
-  // --- LÓGICA DO JOGO ---
-
   const handleLessonStart = (lesson, index) => {
-      // Trava de Segurança: Não deixa abrir lições bloqueadas
-      if (index > unlockedIndex) {
-          setBmoMessage("Essa fase ainda está bloqueada! 🔒");
-          return;
-      }
+      if (index > unlockedIndex) { setBmoMessage("Fase bloqueada! 🔒"); return; }
+      if (hearts <= 0) { setBmoMessage("Sem vidas! 💔"); alert("Sem vidas! Espere ou reinicie."); return; }
 
-      // Trava de Vidas: Sem coração, sem jogo
-      if (hearts <= 0) {
-          setBmoMessage("Você precisa descansar! (Sem vidas) 💔");
-          alert("Você está sem vidas! Espere recarregar (ou reinicie o progresso no console).");
-          return;
-      }
+      setSessionXp(0);
+      setShowVictory(false);
 
       if (lesson.exercises && lesson.exercises.length > 0) {
           startLessonGame(lesson);
@@ -103,7 +124,7 @@ function App() {
 
   const gerarLicaoIA = (lesson) => {
     setLoadingAI(true);
-    setBmoMessage("O BMO está criando um desafio...");
+    setBmoMessage("Criando desafio...");
     fetch('http://localhost:8080/courses/test-ai')
       .then(res => res.json())
       .then(novaQuestao => {
@@ -133,14 +154,15 @@ function App() {
     setStatus(isRight ? 'correct' : 'wrong')
 
     if (isRight) {
-        setBmoMessage("Mandou bem! +10 XP 💎");
-        setXp(prev => prev + 10); // Ganha XP
+        setBmoMessage("Boa! +10 XP 💎");
+        setXp(prev => prev + 10);
+        setSessionXp(prev => prev + 10);
         const snd = new Audio("https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg");
         snd.volume = 0.2;
         snd.play().catch(()=>{});
     } else {
-        setBmoMessage("Ah não! -1 Vida 💔");
-        setHearts(prev => Math.max(0, prev - 1)); // Perde Vida
+        setBmoMessage("Errou! -1 Vida 💔");
+        setHearts(prev => Math.max(0, prev - 1));
     }
   }
 
@@ -149,32 +171,36 @@ function App() {
         setCurrentExerciseIndex(currentExerciseIndex + 1);
         setStatus('none');
         setSelectedOption(null);
-        setBmoMessage("Próximo desafio...");
+        setBmoMessage("Próximo...");
     } else {
-        setBmoMessage("Lição Completada! 🏆");
-
-        // Lógica de Desbloqueio: Só desbloqueia se for a última lição feita
-        const currentLessonGlobalIndex = activeLesson.orderIndex - 1; // Ajuste simples, idealmente viria do map index
-        // Simplificação: Se completou, tenta aumentar o index desbloqueado
-        // Como não temos o index global aqui dentro fácil, vamos incrementar se não estivermos repetindo
-        setUnlockedIndex(prev => prev + 1);
-
-        setActiveLesson(null);
+        finishLesson(); // Chama a vitória
     }
   }
 
-  // Cheat para resetar (útil pra testar)
+  const finishLesson = () => {
+      setShowVictory(true);
+      // Avança apenas se for a lição atual
+      if (unlockedIndex < course.units.length * 3) {
+          // Lógica simplificada de avanço
+          setUnlockedIndex(prev => prev + 1);
+      }
+  };
+
+  const closeVictory = () => {
+      setShowVictory(false);
+      setActiveLesson(null);
+      setBmoMessage("Vamos para a próxima!");
+  };
+
   const resetProgress = () => {
-      if(confirm("Reiniciar todo o progresso?")) {
-          setUnlockedIndex(0);
-          setXp(0);
-          setHearts(5);
+      if(confirm("Reiniciar progresso?")) {
+          setUnlockedIndex(0); setXp(0); setHearts(5);
           setBmoMessage("Memória apagada! 😵‍💫");
       }
   }
 
   const pokeBmo = () => {
-    const falas = ["Bip Bop!", "JavaScript é vida!", "Não esqueça o ponto e vírgula!", "🐧💻"]
+    const falas = ["Bip Bop!", "Java é vida!", "Não esqueça o ;", "🐧💻"]
     setBmoMessage(falas[Math.floor(Math.random() * falas.length)])
   }
 
@@ -193,19 +219,24 @@ function App() {
          </div>
       </div>
 
-      {/* BMO */}
       <div className="alive-bmo" onClick={pokeBmo}>
         <div className={`bmo-speech ${status}`}>{bmoMessage}</div>
         <img src={bmoImg} alt="BMO" className="bmo-img animate-float" />
       </div>
 
       <div className="content-wrapper">
-        {activeLesson ? (
+
+        {/* --- TELA DE VITÓRIA (MODAL) --- */}
+        {showVictory && (
+            <VictoryScreen xpGained={sessionXp} onContinue={closeVictory} />
+        )}
+
+        {/* --- MODO JOGO --- */}
+        {activeLesson && !showVictory ? (
             <div className="game-card">
                 <div className="game-header">
-                    <button onClick={() => setActiveLesson(null)}>✕</button>
+                    <button onClick={() => setActiveLesson(null)}><X size={24} color="#afafaf"/></button>
                     <div className="progress-bar"><div className="fill" style={{ width: `${((currentExerciseIndex + 1) / (activeLesson.exercises.length || 1)) * 100}%` }}></div></div>
-                    {/* Vida no jogo */}
                     <div className="hearts-display"><Heart fill="red" color="red" size={20} /> {hearts}</div>
                 </div>
                 <div className="game-body">
@@ -227,9 +258,11 @@ function App() {
                 </div>
             </div>
         ) : (
+            /* --- MAPA --- */
+            !showVictory && (
             <div className="map-view">
                 <header className="map-header">
-                    <span className="course-title" onClick={resetProgress}>🐧 {course.title}</span>
+                    <span className="course-title" onClick={resetProgress} style={{cursor:'pointer'}}>🐧 {course.title}</span>
                     <div className="stats">
                         <span className="stat-box">💎 {xp} XP</span>
                         <span className="stat-box"><Heart fill="#ff4b4b" color="#ff4b4b" size={18}/> {hearts}</span>
@@ -267,6 +300,7 @@ function App() {
                     ))}
                 </div>
             </div>
+            )
         )}
       </div>
     </div>
