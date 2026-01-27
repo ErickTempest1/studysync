@@ -91,13 +91,11 @@ Diferente de quizzes estáticos, o StudySync integra-se com a **QuizAPI** para f
 
 ---
 
-## 📸 Screenshots
+## 📸 Screenshots#
 
 | Mapa de Progresso | Quiz Interativo | Tela de Vitória |
 |:---:|:---:|:---:|
-| ![Map](link-da-imagem-mapa) | ![Quiz](link-da-imagem-quiz) | ![Win](link-da-imagem-win) |
-
-*(Dica: Tire prints do seu projeto, suba na aba "Issues" do GitHub ou no Imgur e cole os links aqui)*
+| ![Map](./screenshots/mapa.png) | ![Quiz](./screenshots/quiz.png) | ![Win](./screenshots/vitoria.png) |
 
 ---
 
