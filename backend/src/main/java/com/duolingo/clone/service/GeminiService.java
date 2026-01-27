@@ -25,18 +25,17 @@ public class GeminiService {
 
     public String gerarExercicio(String tema) {
         try {
-            System.out.println("🐧 BMO: Consultando a QuizAPI...");
+            System.out.println("🐧 BMO: Consultando a QuizAPI sobre JavaScript...");
 
             RestTemplate restTemplate = new RestTemplate();
 
-            // 1. Configura o Header com a sua chave (Segurança)
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Api-Key", apiKey);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            // 2. Chama a API pedindo 1 questão de código (JavaScript, Linux, etc)
-            // Limit=1 garante que vem só uma pergunta
-            String finalUrl = apiUrl + "?limit=1";
+            // MUDANÇA AQUI: Adicionamos '&tags=JavaScript'
+            // Isso garante que só venham perguntas dessa linguagem
+            String finalUrl = apiUrl + "?limit=1&tags=JavaScript";
 
             ResponseEntity<String> response = restTemplate.exchange(finalUrl, HttpMethod.GET, entity, String.class);
 

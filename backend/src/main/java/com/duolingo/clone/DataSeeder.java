@@ -1,107 +1,86 @@
 package com.duolingo.clone;
 
 import com.duolingo.clone.model.*;
-import com.duolingo.clone.repository.CourseRepository;
-import com.duolingo.clone.service.GeminiService; // <--- 1. Importação nova aqui em cima
+import com.duolingo.clone.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.util.Arrays;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
 
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private GeminiService geminiService; // <--- 2. Injeção do Serviço aqui
+    @Autowired private CourseRepository courseRepo;
+    @Autowired private UnitRepository unitRepo;
+    @Autowired private LessonRepository lessonRepo;
+    @Autowired private ExerciseRepository exerciseRepo;
 
     @Override
     public void run(String... args) throws Exception {
-        // --- PARTE 1: LIMPEZA E CRIAÇÃO DO CURSO FIXO ---
-        courseRepository.deleteAll();
+        // Limpa o banco para não duplicar se reiniciar
+        if (courseRepo.count() > 0) return;
 
-        Course course = new Course();
-        course.setTitle("Lógica com JavaScript");
-        course.setSourceLang("Human");
-        course.setTargetLang("Machine");
+        System.out.println("------ 🐧 BMO: CONSTRUINDO O MAPA DE JAVASCRIPT ------");
 
-        // UNIDADE 1
-        Unit unit1 = new Unit();
-        unit1.setTitle("Variáveis e Tipos");
-        unit1.setOrderIndex(1);
-        unit1.setColor("#3B82F6");
-        unit1.setCourse(course);
+        // 1. Criar o Curso
+        Course jsCourse = new Course("Lógica com JavaScript", "from-java");
+        courseRepo.save(jsCourse);
 
-        // Lição 1.1
-        Lesson lesson1 = new Lesson();
-        lesson1.setTitle("Primeiros Passos");
-        lesson1.setOrderIndex(1);
-        lesson1.setTotalXp(15);
-        lesson1.setUnit(unit1);
+        // --- UNIDADE 1: FUNDAMENTOS (Azul) ---
+        Unit u1 = new Unit("Fundamentos e Variáveis", 1, "#58cc02", jsCourse);
+        unitRepo.save(u1);
+        criarLicao(u1, "O que é JavaScript?", 1);
+        criarLicao(u1, "Variáveis (var, let, const)", 2);
+        criarLicao(u1, "Tipos de Dados", 3);
 
-        // Exercícios Fixos (Para garantir que sempre tenha algo)
-        Exercise ex1 = new Exercise();
-        ex1.setType(ExerciseType.MULTIPLE_CHOICE);
-        ex1.setPrompt("Qual é o tipo de dado de: 'BMO'?");
-        ex1.setCorrectAnswer("String");
-        ex1.setLesson(lesson1);
+        // --- UNIDADE 2: LÓGICA BOOLEANA (Verde) ---
+        Unit u2 = new Unit("Condicionais (If/Else)", 2, "#ce82ff", jsCourse);
+        unitRepo.save(u2);
+        criarLicao(u2, "Operadores de Comparação", 1);
+        criarLicao(u2, "Estrutura If/Else", 2);
+        criarLicao(u2, "Operadores Lógicos (&&, ||)", 3);
 
-        ExerciseOption opt1a = new ExerciseOption("Number", false, ex1);
-        ExerciseOption opt1b = new ExerciseOption("String", true, ex1);
-        ExerciseOption opt1c = new ExerciseOption("Boolean", false, ex1);
-        ExerciseOption opt1d = new ExerciseOption("Undefined", false, ex1);
-        ex1.setOptions(List.of(opt1a, opt1b, opt1c, opt1d));
+        // --- UNIDADE 3: LOOPS (Laranja) ---
+        Unit u3 = new Unit("Laços de Repetição", 3, "#ff9600", jsCourse);
+        unitRepo.save(u3);
+        criarLicao(u3, "Loop For", 1);
+        criarLicao(u3, "Loop While", 2);
+        criarLicao(u3, "Break e Continue", 3);
 
-        Exercise ex2 = new Exercise();
-        ex2.setType(ExerciseType.MULTIPLE_CHOICE);
-        ex2.setPrompt("Como declaramos uma variável constante?");
-        ex2.setCorrectAnswer("const");
-        ex2.setLesson(lesson1);
-        ex2.setOptions(List.of(
-                new ExerciseOption("var", false, ex2),
-                new ExerciseOption("let", false, ex2),
-                new ExerciseOption("const", true, ex2)
-        ));
+        // --- UNIDADE 4: FUNÇÕES (Vermelho) ---
+        Unit u4 = new Unit("Funções e Escopo", 4, "#ff4b4b", jsCourse);
+        unitRepo.save(u4);
+        criarLicao(u4, "Declarando Funções", 1);
+        criarLicao(u4, "Parâmetros e Retorno", 2);
+        criarLicao(u4, "Arrow Functions", 3);
 
-        // Lição 1.2
-        Lesson lesson2 = new Lesson();
-        lesson2.setTitle("Console.log");
-        lesson2.setOrderIndex(2);
-        lesson2.setTotalXp(20);
-        lesson2.setUnit(unit1);
+        // --- UNIDADE 5: ARRAYS & OBJETOS (Azul Escuro) ---
+        Unit u5 = new Unit("Estruturas de Dados", 5, "#1cb0f6", jsCourse);
+        unitRepo.save(u5);
+        criarLicao(u5, "Criando Arrays", 1);
+        criarLicao(u5, "Objetos Literais", 2);
+        criarLicao(u5, "Manipulação de Listas", 3);
 
-        // UNIDADE 2
-        Unit unit2 = new Unit();
-        unit2.setTitle("Condicionais (If/Else)");
-        unit2.setOrderIndex(2);
-        unit2.setColor("#10B981");
-        unit2.setCourse(course);
+        System.out.println("------ 🐧 BMO: MAPA CONSTRUÍDO COM SUCESSO! ------");
+    }
 
-        Lesson lesson3 = new Lesson();
-        lesson3.setTitle("Tomando Decisões");
-        lesson3.setOrderIndex(1);
-        lesson3.setUnit(unit2);
+    // Função auxiliar para criar lições vazias (que usarão a IA)
+    private void criarLicao(Unit unidade, String titulo, int ordem) {
+        Lesson licao = new Lesson(titulo, ordem, unidade);
+        lessonRepo.save(licao);
 
-        // Amarrar e Salvar
-        lesson1.setExercises(List.of(ex1, ex2));
-        unit1.setLessons(List.of(lesson1, lesson2));
-        unit2.setLessons(List.of(lesson3));
-        course.setUnits(List.of(unit1, unit2));
+        // Criar UM exercício fixo de introdução para cada lição
+        // Para que o usuário não caia direto na IA sem saber o tema
+        Exercise ex = new Exercise(
+                "Conceito: " + titulo + ". Clique em Verificar para iniciar o desafio prático!",
+                licao
+        );
+        exerciseRepo.save(ex);
 
-        courseRepository.save(course);
-        System.out.println("------ 🐧 BMO: DADOS FIXOS CARREGADOS! ------");
-
-        // --- PARTE 2: TESTE DO CÉREBRO (IA) ---
-        // Isso vai aparecer no console do IntelliJ quando você rodar
-        System.out.println("🐧 BMO: Conectando na Matrix para gerar questão nova...");
-        try {
-            String jsonDaIA = geminiService.gerarExercicio("Loop For em JavaScript");
-            System.out.println("🐧 RESPOSTA DA IA (JSON): " + jsonDaIA);
-        } catch (Exception e) {
-            System.out.println("🐧 BMO: Falha na conexão com a IA (verifique a chave): " + e.getMessage());
-        }
+        // Opções dummy (apenas para passar a tela inicial)
+        ex.getOptions().add(new ExerciseOption("Entendi!", true, ex));
+        ex.getOptions().add(new ExerciseOption("Explique mais", false, ex));
+        exerciseRepo.save(ex); // O cascade salva as options
     }
 }
