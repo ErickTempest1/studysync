@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import bmoImg from './assets/BMO.png'
-import { Star, Lock, Check, X } from 'lucide-react'
+import { Star, Lock, Check, X, Heart } from 'lucide-react'
 
 // --- BACKGROUNDS ---
 const Sun = ({ isSunset }) => (
@@ -37,7 +37,7 @@ const Stars = () => (
     </div>
 )
 
-// --- TELA DE VITÓRIA (LIMPA) ---
+// --- TELA DE VITÓRIA ---
 const VictoryScreen = ({ onContinue }) => {
     return (
         <div className="victory-overlay">
@@ -48,12 +48,9 @@ const VictoryScreen = ({ onContinue }) => {
                 </div>
                 <h2>Lição Completa!</h2>
                 <img src={bmoImg} className="victory-img" alt="BMO Happy" />
-
-                {/* Removi os stats de XP e Vidas */}
                 <p style={{color: '#666', fontWeight: 'bold', margin: '10px 0'}}>
-                    Você está mandando muito bem!
+                    Você está evoluindo rápido!
                 </p>
-
                 <button className="action-btn victory-btn" onClick={onContinue}>
                     CONTINUAR
                 </button>
@@ -68,12 +65,12 @@ function App() {
   const [activeLesson, setActiveLesson] = useState(null)
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0)
   const [selectedOption, setSelectedOption] = useState(null)
-  const [status, setStatus] = useState('none') // 'none', 'correct', 'wrong'
+  const [status, setStatus] = useState('none')
   const [loadingAI, setLoadingAI] = useState(false);
   const [timeTheme, setTimeTheme] = useState('day')
   const [bmoMessage, setBmoMessage] = useState("Vamos codar!")
 
-  // Save System (Apenas Progresso agora, sem XP/Vidas)
+  // Save System
   const [showVictory, setShowVictory] = useState(false);
   const [unlockedIndex, setUnlockedIndex] = useState(() => parseInt(localStorage.getItem('duo_progress')) || 0);
 
@@ -96,36 +93,51 @@ function App() {
       .catch(err => console.error("Erro Backend:", err))
   }, [])
 
+  // --- LÓGICA HÍBRIDA (FIXO + IA) ---
   const handleLessonStart = (lesson, index) => {
       if (index > unlockedIndex) { setBmoMessage("Fase bloqueada! 🔒"); return; }
 
-      // Removida a verificação de vidas (hearts <= 0)
-
       setShowVictory(false);
 
+      // Se a lição já tem conteúdo fixo (do DataSeeder), usamos ele como BASE
+      // Mas chamamos a IA para completar até ter pelo menos 8 questões
       if (lesson.exercises && lesson.exercises.length > 0) {
-          startLessonGame(lesson);
+          completarLicaoComIA(lesson);
       } else {
-          gerarLicaoIA(lesson);
+          // Se for vazia, chama a IA para criar tudo
+          completarLicaoComIA({ ...lesson, exercises: [] });
       }
   }
 
-  const gerarLicaoIA = (lesson) => {
+  const completarLicaoComIA = (lessonBase) => {
     setLoadingAI(true);
-    setBmoMessage("BMO está baixando questões...");
+    setBmoMessage("BMO está criando questões extras...");
+
+    // Chama o endpoint da QuizAPI
     fetch('http://localhost:8080/courses/test-ai')
       .then(res => res.json())
       .then(novasQuestoes => {
-        const listaExercicios = Array.isArray(novasQuestoes) ? novasQuestoes : [novasQuestoes];
-        const licaoIA = { ...lesson, exercises: listaExercicios };
-        startLessonGame(licaoIA);
+        // Garante que é um array
+        const listaIA = Array.isArray(novasQuestoes) ? novasQuestoes : [novasQuestoes];
+
+        // Mistura: Exercícios Fixos + Exercícios da IA
+        const exerciciosFinais = [...(lessonBase.exercises || []), ...listaIA];
+
+        // Inicia o jogo com a lista combinada
+        const licaoPronta = { ...lessonBase, exercises: exerciciosFinais };
+        startLessonGame(licaoPronta);
         setLoadingAI(false);
       })
       .catch(err => {
         console.error("Erro IA:", err);
         setLoadingAI(false);
-        const fallback = { ...lesson, exercises: [{ prompt: "Offline: console.log imprime?", correctAnswer: "Sim", explanation:"É a função padrão.", options: [{text:"Não", correct:false}, {text:"Sim", correct:true}] }] };
-        startLessonGame(fallback);
+        // Fallback: Se a IA falhar, usa só os fixos ou um de emergência
+        if (lessonBase.exercises && lessonBase.exercises.length > 0) {
+            startLessonGame(lessonBase);
+        } else {
+            const fallback = { ...lessonBase, exercises: [{ prompt: "Offline: console.log imprime?", correctAnswer: "Sim", explanation:"É a função padrão.", options: [{text:"Não", correct:false}, {text:"Sim", correct:true}] }] };
+            startLessonGame(fallback);
+        }
       });
   };
 
@@ -149,7 +161,6 @@ function App() {
         snd.play().catch(()=>{});
     } else {
         setBmoMessage("Ops! Veja a explicação.");
-        // Não removemos mais vidas aqui
     }
   }
 
@@ -191,7 +202,6 @@ function App() {
 
   if (!course) return <div className={`app-container ${timeTheme} loading`}>Carregando o mundo...</div>
 
-  // --- RENDER ---
   const currentExercise = activeLesson?.exercises[currentExerciseIndex];
 
   return (
@@ -227,7 +237,6 @@ function App() {
                     <div className="progress-bar">
                         <div className="fill" style={{ width: `${((currentExerciseIndex) / (activeLesson.exercises.length)) * 100}%` }}></div>
                     </div>
-                    {/* Removida a exibição de Vidas aqui */}
                 </div>
 
                 <div className="game-body">
@@ -259,7 +268,6 @@ function App() {
                                 )}
                             </div>
 
-                            {/* EXPLICAÇÃO AQUI */}
                             <div className="feedback-text">
                                 <strong>Explicação:</strong><br/>
                                 {currentExercise?.explanation || "A resposta correta é: " + currentExercise?.correctAnswer}
@@ -279,7 +287,6 @@ function App() {
                 <header className="map-header">
                     <span className="course-title" onClick={resetProgress} style={{cursor:'pointer'}}>🐧 {course.title}</span>
                     <div className="stats">
-                        {/* Apenas o ícone de engrenagem ou vazio, já que não temos mais stats */}
                         <span className="stat-box" style={{opacity:0.6}}>Modo Estudo 📚</span>
                     </div>
                 </header>
